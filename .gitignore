@@ -5,7 +5,10 @@
 [Bb]uilds/
 [Ll]ogs/
 [Uu]serSettings/
-
+/Library
+/obj
+/Temp
+/Build
 .vs/
 .vscode/
 *.csproj
