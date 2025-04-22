@@ -1,67 +1,67 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerHealth : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    public float maxHealth = 100f; // Default value, can be overridden
-    private float curHealth;
-    private float healthPercentage;
-    private GameObject healthBarPrefab;
-    private PlayerHealthBar healthBarInstance;
-    // Update is called once per frame
+    public int maxHealth = 100;
+    private int currentHealth;
+    private GameObject hudContainer;
+    private Slider healthSlider;
 
-
-
-
-    // General Functions
-
-    private void Awake()
+    private void Start()
     {
-    curHealth = maxHealth;
+        currentHealth = maxHealth;
+        UpdateHealthBar();
     }
 
-    void Start()
+    public void SetHUDReference(GameObject hud)
     {
-        InitHealthBar(); // Initialize health bar
+        hudContainer = hud;
+        InitializeHealthBar();
     }
 
-    void Update()
+    private void InitializeHealthBar()
     {
-        Debug.Log($"HEALTH.CS --> Current Health: {curHealth}");
-    }
+        if (hudContainer == null) return;
 
-
-
-
-    // ##### Custom Functions #####
-
-    private void InitHealthBar()
-    {
-        if (healthBarPrefab != null)
+        healthSlider = hudContainer.transform.Find("HealthBar")?.GetComponent<Slider>();
+        if (healthSlider == null)
         {
-            GameObject canvas = GameObject.Find("Canvas");
-            GameObject healthBarObject = Instantiate(healthBarPrefab, canvas.transform);
-            healthBarInstance = healthBarObject.GetComponent<PlayerHealthBar>();
-
-            healthBarInstance.Initialize((int)maxHealth); // Set max health
-            UpdateHealthBar(); // Display initial full health
+            Debug.LogError("HealthBar Slider not found!");
+            return;
         }
-    }
-    private void UpdateHealthBar()
-    {
-        healthPercentage = (curHealth / maxHealth) * 100f;
-        healthBarInstance?.SetHealthPercentage(healthPercentage);
+
+        healthSlider.maxValue = maxHealth;
+        healthSlider.value = currentHealth;
     }
 
     public void TakeDamage(float damage)
     {
-        curHealth -= damage;
-        if (curHealth < 0)
+        currentHealth = Mathf.Max(0, currentHealth - (int)damage);
+        if (healthSlider != null)
         {
-            curHealth = 0;
+            healthSlider.value = currentHealth;
         }
-        UpdateHealthBar(); // Update health bar after taking damage
+
+        Debug.Log($"Player took {damage} damage! Current Health: {currentHealth}");
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
     }
 
+    private void Die()
+    {
+        Debug.Log("Player died!");
+        // Add death logic here
+    }
 
+    private void UpdateHealthBar()
+    {
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth;
+        }
+    }
 }

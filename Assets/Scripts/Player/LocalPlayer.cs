@@ -8,6 +8,9 @@ public class LocalPlayer : NetworkBehaviour
 
     // ###### VARIABLES ######
 
+    // HUD variables
+    public GameObject HUDCanvasPrefab;
+    private GameObject HUDInstance;
     // Movement variables
     public float moveSpeed = 5f;
     
@@ -17,12 +20,12 @@ public class LocalPlayer : NetworkBehaviour
     public float playerDamage = 10f;
     public float shootCooldown = 0.5f;
     private float lastShootTime;
-
+    
     // Components
     private Rigidbody2D rb;
     private Animator animator;
     private PlayerHealth healthComponent;
-
+    private PlayerExperience experienceComponent;
     // Networking
     //public NetworkVariable<Vector2> Position = new NetworkVariable<Vector2>();
 
@@ -47,7 +50,14 @@ public class LocalPlayer : NetworkBehaviour
         animator = GetComponent<Animator>();
 
         // Health Initialization
-        healthComponent = GetComponent<PlayerHealth>();
+
+        if (IsOwner && PlayerCameraFollow_Smooth.Instance != null)
+        {
+            PlayerCameraFollow_Smooth.Instance.SetTarget(transform);
+            SpawnHUD(); // Spawn HUD only for the owner
+            InitializeHealthComponent();
+            InitializeExperienceComponent(); // Initialize experience component
+        }
 
     }
 
@@ -57,11 +67,52 @@ public class LocalPlayer : NetworkBehaviour
         if (!IsOwner) return; // Only the owner can control the player
         // Player Movement and Animation
         Move();
+        TestDamage(); // Test damage function for debugging
+        TestExperience(); // Test experience function for debugging
     }
 
 
 
     // ##### Custom Functions #####
+
+
+    void SpawnHUD()
+    {
+        if (HUDCanvasPrefab != null)
+        {
+
+            Canvas canvas = FindObjectOfType<Canvas>();
+
+            HUDInstance = Instantiate(HUDCanvasPrefab, canvas.transform);
+        
+
+        }
+        else
+        {
+            Debug.LogWarning("HUD Prefab is not assigned!");
+        }
+
+    }
+
+    private void InitializeHealthComponent()
+    {
+        healthComponent = GetComponent<PlayerHealth>();
+        if (healthComponent != null)
+        {
+            healthComponent.SetHUDReference(HUDInstance); // New method we'll add
+        }
+    }
+
+    private void InitializeExperienceComponent()
+    {
+        experienceComponent = GetComponent<PlayerExperience>();
+        if (experienceComponent != null)
+        {
+            experienceComponent.SetHUDReference(HUDInstance); // New method we'll add
+        }
+    }
+
+
     public void Move()
     {
         float moveX = Input.GetAxis("Horizontal") * moveSpeed;
@@ -131,5 +182,11 @@ public class LocalPlayer : NetworkBehaviour
         }
     }
 
-
+private void TestExperience()
+{
+    if (Input.GetKeyDown(KeyCode.E))
+    {
+        experienceComponent?.GainEXP(30f); // Gain 30 EXP on E key
+    }
+}
 }
