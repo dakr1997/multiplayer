@@ -15,14 +15,14 @@ GameObject:
   - component: {fileID: 3264262347001323542}
   - component: {fileID: 9130299977010020765}
   - component: {fileID: 3214636210248206796}
+  - component: {fileID: -7040602349829137824}
   - component: {fileID: 1015184763365141646}
   - component: {fileID: 1005090387922136128}
   - component: {fileID: 5198997713752091062}
   - component: {fileID: 1677799336585110302}
-  - component: {fileID: -7040602349829137824}
   m_Layer: 0
   m_Name: LocalPlayer
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -192,6 +192,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+--- !u!114 &-7040602349829137824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892764523323301376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3992e792661f95c4aaa57f5595d71019, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentLevel: 0
+  currentEXP: 0
+  expToNextLevel: 100
+  floatinExpTextPrefab: {fileID: 356130796588407086, guid: 00d4415626c7a0848b1bedfaa1fecabf, type: 3}
 --- !u!212 &1015184763365141646
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -277,7 +293,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  NetworkTransformExpanded: 0
+  NetworkTransformExpanded: 1
   AutoOwnerAuthorityTickOffset: 1
   PositionInterpolationType: 0
   RotationInterpolationType: 0
@@ -325,19 +341,3 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   TransitionStateInfoList: []
   m_Animator: {fileID: 4881445962317876395}
---- !u!114 &-7040602349829137824
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7892764523323301376}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3992e792661f95c4aaa57f5595d71019, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  currentLevel: 0
-  currentEXP: 0
-  expToNextLevel: 100
-  floatinExpTextPrefab: {fileID: 356130796588407086, guid: 00d4415626c7a0848b1bedfaa1fecabf, type: 3}

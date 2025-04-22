@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 
@@ -23,6 +24,7 @@ public class LocalPlayer : NetworkBehaviour
     
     // Components
     private Rigidbody2D rb;
+    private TowerHealth towerHealth;
     private Animator animator;
     private PlayerHealth healthComponent;
     private PlayerExperience experienceComponent;
@@ -57,6 +59,7 @@ public class LocalPlayer : NetworkBehaviour
             SpawnHUD(); // Spawn HUD only for the owner
             InitializeHealthComponent();
             InitializeExperienceComponent(); // Initialize experience component
+            InitializeTowerHealthComponent(); // <- New line here
         }
 
     }
@@ -102,6 +105,37 @@ public class LocalPlayer : NetworkBehaviour
             healthComponent.SetHUDReference(HUDInstance); // New method we'll add
         }
     }
+
+    private void InitializeTowerHealthComponent()
+    {
+        towerHealth = FindObjectOfType<TowerHealth>();
+
+        if (towerHealth != null)
+        {
+            towerHealth.OnHealthChanged += UpdateTowerHealthHUD;
+        }
+        else
+        {
+            Debug.LogWarning("TowerHealth component not found!");
+        }
+    }
+
+    private void UpdateTowerHealthHUD(float current, float max)
+    {
+        if (HUDInstance == null) return;
+
+        Slider towerSlider = HUDInstance.transform.Find("TowerHealthBar_main")?.GetComponent<Slider>();
+        if (towerSlider != null)
+        {
+            towerSlider.maxValue = max;
+            towerSlider.value = current;
+        }
+        else
+        {
+            Debug.LogWarning("TowerHealthBar not found in HUD!");
+        }
+    }
+
 
     private void InitializeExperienceComponent()
     {
