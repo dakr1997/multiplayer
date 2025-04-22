@@ -1,40 +1,79 @@
 using UnityEngine;
+using Unity.Netcode;
 using System;
 
-public class TowerHealth : MonoBehaviour
+public class TowerHealth : NetworkBehaviour, IDamageable
 {
     public float maxHealth = 100f;
-    private float currentHealth;
 
-    public event Action<float, float> OnHealthChanged; // current, max
+    private NetworkVariable<float> currentHealth = new NetworkVariable<float>(
+        writePerm: NetworkVariableWritePermission.Server);
 
-    private void Start()
+    public event Action<float, float> OnHealthChanged;
+
+    public bool IsAlive { get; private set; } = true;
+
+    [Header("Debug Tick Damage")]
+    public bool enableTickDamage = true;
+    public float tickDamageInterval = 2f;
+    public float tickDamageAmount = 5f;
+    private float tickTimer;
+
+    private void Awake()
     {
-        currentHealth = maxHealth;
-        NotifyHealthChange();
+        currentHealth.OnValueChanged += HandleHealthChanged;
     }
 
-    public void TakeDamage(float damage)
+    public override void OnNetworkSpawn()
     {
-        currentHealth -= damage;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-        Debug.Log($"Tower took {damage} damage. Health: {currentHealth}/{maxHealth}");
-        NotifyHealthChange();
+        if (IsServer)
+        {
+            currentHealth.Value = maxHealth;
+        }
 
-        if (currentHealth <= 0)
+        // Trigger UI update for clients when they connect
+        NotifyHealthChange(currentHealth.Value, maxHealth);
+    }
+
+    private void Update()
+    {
+        if (!IsServer || !IsAlive || !enableTickDamage) return;
+
+        tickTimer += Time.deltaTime;
+        if (tickTimer >= tickDamageInterval)
+        {
+            tickTimer = 0f;
+            TakeDamage(tickDamageAmount);
+        }
+    }
+
+    public void TakeDamage(float damage, string source = null)
+    {
+        if (!IsServer || !IsAlive) return;
+
+        currentHealth.Value -= damage;
+        currentHealth.Value = Mathf.Clamp(currentHealth.Value, 0, maxHealth);
+        Debug.Log($"[Tower] Took {damage} damage. Health: {currentHealth.Value}/{maxHealth}");
+
+        if (currentHealth.Value <= 0f)
         {
             HandleTowerDestruction();
         }
     }
 
-    private void NotifyHealthChange()
+    private void HandleHealthChanged(float oldVal, float newVal)
     {
-        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        NotifyHealthChange(newVal, maxHealth);
+    }
+
+    private void NotifyHealthChange(float current, float max)
+    {
+        OnHealthChanged?.Invoke(current, max);
     }
 
     private void HandleTowerDestruction()
     {
-        Debug.Log("The tower has been destroyed!");
-        // Add death/destroy effects or game over logic here
+        IsAlive = false;
+        Debug.Log("[Tower] Destroyed.");
     }
 }

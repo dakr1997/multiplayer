@@ -204,10 +204,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3992e792661f95c4aaa57f5595d71019, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   currentLevel: 0
   currentEXP: 0
   expToNextLevel: 100
-  floatinExpTextPrefab: {fileID: 356130796588407086, guid: 00d4415626c7a0848b1bedfaa1fecabf, type: 3}
+  floatingExpTextPrefab: {fileID: 356130796588407086, guid: 00d4415626c7a0848b1bedfaa1fecabf, type: 3}
 --- !u!212 &1015184763365141646
 SpriteRenderer:
   m_ObjectHideFlags: 0

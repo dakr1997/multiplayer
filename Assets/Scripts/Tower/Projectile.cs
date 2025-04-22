@@ -49,7 +49,7 @@ public class Projectile : NetworkBehaviour // Inherit from NetworkBehaviour
         // Check if the projectile has traveled beyond its allowed radius
         if (Vector3.Distance(transform.position, startPos) > maxRadius)
         {
-            StartCoroutine(DelayedDespawn());  // Start the coroutine to despawn after a short delay
+            StartCoroutine(DelayedDespawn(0.2f));  // Start the coroutine to despawn after a short delay
         }
     }
 
@@ -61,17 +61,31 @@ public class Projectile : NetworkBehaviour // Inherit from NetworkBehaviour
         if (other.CompareTag("Enemy"))
         {
             DamageHelper.ApplyDamage(other.gameObject, damage, "Projectile");
-            StartCoroutine(DelayedDespawn());  // Despawn after a small delay when hitting an enemy
+            StartCoroutine(DelayedDespawn(0.2f));  // Despawn after a small delay when hitting an enemy
         }
     }
 
     // Coroutine that delays the despawn for visual sync
-    private IEnumerator DelayedDespawn()
+    private IEnumerator DelayedDespawn(float delay)
     {
-        if (!IsServer) yield break; // Only run on the server
-        yield return new WaitForSeconds(0.25f); // Delay of 0.1 seconds
-        GetComponent<NetworkObject>().Despawn(); // Despawn the projectile
+        // Wait for the given delay time before despawning the projectile
+        yield return new WaitForSeconds(delay);
+
+        // Check if we're on the server and if the NetworkObject is spawned
+        if (IsServer && NetworkObject.IsSpawned)
+        {
+            // Log for debugging
+            Debug.Log("Despawning projectile after delay");
+
+            // Now safely despawn the projectile
+            NetworkObject.Despawn();
+        }
+        else
+        {
+            Debug.LogWarning("[Projectile] Tried to despawn, but it wasn't spawned or not on the server.");
+        }
     }
+
 
     // Optional: Call this when the projectile is off-screen
     void OnBecameInvisible()
@@ -79,7 +93,7 @@ public class Projectile : NetworkBehaviour // Inherit from NetworkBehaviour
         if (!IsServer) return; // Only run on the server
         if (gameObject.activeInHierarchy)
         {
-            StartCoroutine(DelayedDespawn());
+            StartCoroutine(DelayedDespawn(0.2f));
         }
     }
 }

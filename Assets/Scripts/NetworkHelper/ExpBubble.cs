@@ -57,6 +57,7 @@ public class ExpBubble : NetworkBehaviour
 
         foreach (GameObject player in players)
         {
+
             float distance = Vector3.Distance(transform.position, player.transform.position);
             if (distance < closestDistance)
             {
@@ -70,31 +71,32 @@ public class ExpBubble : NetworkBehaviour
 
     private void CollectBubble()
     {
+        Debug.Log("Collecting EXP bubble!");
         if (!IsServer) return; // Make sure the server handles the collection
 
-        // Check if the object is already despawned or not spawned
         if (!netObj.IsSpawned)
         {
             Debug.LogError("Attempted to collect an object that is not spawned!");
             return;
         }
 
-        // Get all players in the scene
+        // ✅ Define the players array
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-
+        Debug.Log("Found " + players.Length + " players.");
+        // Loop through all players and give them EXP
         foreach (GameObject player in players)
         {
-            // Get the PlayerExperience script from each player object
-            PlayerExperience playerExperience = player.GetComponent<PlayerExperience>();
-
-            if (playerExperience != null)
+            Debug.Log("Giving EXP to player: " + player.name);
+        }
+        foreach (GameObject player in players)
+        {
+            PlayerExperience exp = player.GetComponent<PlayerExperience>();
+            if (exp != null)
             {
-                playerExperience.GainEXP(expAmount); // Award EXP to each player
-                Debug.Log($"Gave {expAmount} EXP to player {player.name}");
+                exp.GainEXPServerRpc(expAmount); // ServerRPC adds EXP and updates client UI
             }
         }
 
-        // Despawn the bubble from the network and destroy it locally
         netObj.Despawn();
         Destroy(gameObject);
     }

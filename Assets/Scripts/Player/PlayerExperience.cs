@@ -1,15 +1,19 @@
 using UnityEngine;
+using Unity.Netcode;
 using UnityEngine.UI;
 using TMPro;
-public class PlayerExperience : MonoBehaviour
+
+public class PlayerExperience : NetworkBehaviour
 {
     public int currentLevel = 1;
     public float currentEXP = 0f;
     public float expToNextLevel = 100f;
-    public GameObject floatinExpTextPrefab;
+    public GameObject floatingExpTextPrefab;
     private Slider expSlider;
     private GameObject hudContainer;
     private TextMeshProUGUI levelText;
+
+    // Set HUD reference for the player
     public void SetHUDReference(GameObject hud)
     {
         hudContainer = hud;
@@ -46,7 +50,19 @@ public class PlayerExperience : MonoBehaviour
         levelText.text = $"{currentLevel}";
     }
 
-    public void GainEXP(float amount)
+    // This is called on the server to add EXP
+    [ServerRpc(RequireOwnership = false)]
+    public void GainEXPServerRpc(float amount)
+    {
+        // Make sure only the server handles the EXP gain
+        GainEXP(amount);
+
+        // Notify all clients about the EXP update
+        NotifyClientsOfExpUpdateClientRpc(currentEXP, currentLevel);
+    }
+
+    // Actual logic to increase experience and level up
+    private void GainEXP(float amount)
     {
         currentEXP += amount;
         ShowFloatingText($"+{amount} EXP");
@@ -64,6 +80,7 @@ public class PlayerExperience : MonoBehaviour
         }
     }
 
+    // Handle leveling up logic
     private void LevelUp()
     {
         currentLevel++;
@@ -84,13 +101,31 @@ public class PlayerExperience : MonoBehaviour
         }
     }
 
-        private void ShowFloatingText(string message)
+    // Display floating text when gaining experience
+    private void ShowFloatingText(string message)
     {
-        if (floatinExpTextPrefab == null || hudContainer == null) return;
+        if (floatingExpTextPrefab == null || hudContainer == null) return;
 
-        GameObject textObj = Instantiate(floatinExpTextPrefab, hudContainer.transform);
+        GameObject textObj = Instantiate(floatingExpTextPrefab, hudContainer.transform);
         textObj.transform.localPosition = new Vector3(0, 50, 0); // Offset for visibility
         FloatingText floatingText = textObj.GetComponent<FloatingText>();
         floatingText?.SetText(message);
+    }
+
+    // ClientRPC to notify all clients to update their EXP UI
+    [ClientRpc]
+    private void NotifyClientsOfExpUpdateClientRpc(float updatedExp, int updatedLevel)
+    {
+        // Update the EXP UI for all clients
+        if (expSlider != null)
+        {
+            expSlider.value = updatedExp;
+            expSlider.maxValue = expToNextLevel;
+        }
+
+        if (levelText != null)
+        {
+            levelText.text = $"{updatedLevel}";
+        }
     }
 }

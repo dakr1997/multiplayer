@@ -15,6 +15,7 @@ public class LocalPlayer : NetworkBehaviour
     // Movement variables
     public float moveSpeed = 5f;
     
+    private string PlayerName = "Player"; // Default name for the player
     // Shooting variables
     //public GameObject projectilePrefab;
     //public Transform shootingPoint;
@@ -108,7 +109,17 @@ public class LocalPlayer : NetworkBehaviour
 
     private void InitializeTowerHealthComponent()
     {
-        towerHealth = FindObjectOfType<TowerHealth>();
+        // Optional: assign the tower via inspector if there's only one
+        towerHealth = GameObject.FindGameObjectWithTag("Tower")?.GetComponent<TowerHealth>();
+
+        if (towerHealth != null)
+        {
+            towerHealth.OnHealthChanged += UpdateTowerHealthHUD;
+        }
+        else
+        {
+            Debug.LogWarning("TowerHealth component not found! Check Tower GameObject has correct tag and component.");
+        }
 
         if (towerHealth != null)
         {
@@ -124,7 +135,7 @@ public class LocalPlayer : NetworkBehaviour
     {
         if (HUDInstance == null) return;
 
-        Slider towerSlider = HUDInstance.transform.Find("TowerHealthBar_main")?.GetComponent<Slider>();
+        Slider towerSlider = HUDInstance.transform.Find("HealthBarTower_main")?.GetComponent<Slider>();
         if (towerSlider != null)
         {
             towerSlider.maxValue = max;
@@ -220,7 +231,7 @@ private void TestExperience()
 {
     if (Input.GetKeyDown(KeyCode.E))
     {
-        experienceComponent?.GainEXP(30f); // Gain 30 EXP on E key
+        experienceComponent?.GainEXPServerRpc(30f); // Gain 30 EXP on E key
     }
 }
 }
