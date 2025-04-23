@@ -1,8 +1,8 @@
 using UnityEngine;
 using TMPro;
-
 public class FloatingText : MonoBehaviour
 {
+    public event System.Action OnTextComplete;
     public float moveSpeed = 50f;
     public float fadeDuration = 1f;
 
@@ -37,5 +37,10 @@ public class FloatingText : MonoBehaviour
     {
         if (text == null) text = GetComponent<TextMeshProUGUI>();
         text.text = content;
+    }
+
+    public void Complete()
+    {
+        OnTextComplete?.Invoke();
     }
 }

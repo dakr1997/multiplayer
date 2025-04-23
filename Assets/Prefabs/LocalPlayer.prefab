@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1016994980868754279
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 570029041596762138}
+  m_Layer: 0
+  m_Name: LocationExpBubble
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &570029041596762138
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1016994980868754279}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.3, z: 0.23}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6355934828346216257}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7892764523323301376
 GameObject:
   m_ObjectHideFlags: 0
@@ -14,6 +45,7 @@ GameObject:
   - component: {fileID: 4881445962317876395}
   - component: {fileID: 3264262347001323542}
   - component: {fileID: 9130299977010020765}
+  - component: {fileID: 2050900261553466437}
   - component: {fileID: 3214636210248206796}
   - component: {fileID: -7040602349829137824}
   - component: {fileID: 1015184763365141646}
@@ -39,7 +71,8 @@ Transform:
   m_LocalPosition: {x: -5, y: -0.30342516, z: 0.022554325}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 570029041596762138}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &3738202359418701535
@@ -176,12 +209,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   HUDCanvasPrefab: {fileID: 4895103260644722553, guid: 66e4affe04a972c45af60c62f421f53c, type: 3}
+  debugDamageKey: 32
+  debugExpKey: 101
+  debugDamageAmount: 10
+  debugExpAmount: 30
+--- !u!114 &2050900261553466437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892764523323301376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1a33fc1b48a7f3478eeda839719cd5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   moveSpeed: 5
   dashForce: 10
   dashCooldown: 1
   dashDuration: 0.2
-  playerDamage: 10
-  shootCooldown: 0.5
 --- !u!114 &3214636210248206796
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -208,10 +256,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  currentLevel: 0
-  currentEXP: 0
   expToNextLevel: 100
-  floatingExpTextPrefab: {fileID: 356130796588407086, guid: 00d4415626c7a0848b1bedfaa1fecabf, type: 3}
+  levelUpMultiplier: 1.25
 --- !u!212 &1015184763365141646
 SpriteRenderer:
   m_ObjectHideFlags: 0

@@ -4,6 +4,6 @@ public class PlayerNetworkTransform : NetworkTransform
 {
     protected override bool OnIsServerAuthoritative()
     {
-        return false;
+        return false; // Client authoritative movement
     }
 }

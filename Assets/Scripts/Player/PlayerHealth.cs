@@ -1,67 +1,44 @@
 using UnityEngine;
-using UnityEngine.UI;
+using System;
 
 public class PlayerHealth : MonoBehaviour
 {
-    public int maxHealth = 100;
+    public event Action<float, float> OnHealthChanged;
+
+    [SerializeField] private int maxHealth = 100;
     private int currentHealth;
-    private GameObject hudContainer;
-    private Slider healthSlider;
+
+    private PlayerHUDController hud; // Reference to the PlayerHUDController
+    public int CurrentHealth => currentHealth;
+    public int MaxHealth => maxHealth;
 
     private void Start()
     {
         currentHealth = maxHealth;
-        UpdateHealthBar();
+        UpdateHealth();
     }
 
-    public void SetHUDReference(GameObject hud)
+    public void TakeDamage(int damage)
     {
-        hudContainer = hud;
-        InitializeHealthBar();
+        currentHealth = Mathf.Max(0, currentHealth - damage);
+        UpdateHealth();
+        
+        if (currentHealth <= 0) Die();
     }
 
-    private void InitializeHealthBar()
+    private void UpdateHealth()
     {
-        if (hudContainer == null) return;
-
-        healthSlider = hudContainer.transform.Find("HealthBar")?.GetComponent<Slider>();
-        if (healthSlider == null)
-        {
-            Debug.LogError("HealthBar Slider not found!");
-            return;
-        }
-
-        healthSlider.maxValue = maxHealth;
-        healthSlider.value = currentHealth;
-    }
-
-    public void TakeDamage(float damage)
-    {
-        currentHealth = Mathf.Max(0, currentHealth - (int)damage);
-        if (healthSlider != null)
-        {
-            healthSlider.value = currentHealth;
-        }
-
-        Debug.Log($"Player took {damage} damage! Current Health: {currentHealth}");
-
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
     private void Die()
     {
         Debug.Log("Player died!");
-        // Add death logic here
     }
 
-    private void UpdateHealthBar()
+    public void SetHUD(PlayerHUDController hud)
     {
-        if (healthSlider != null)
-        {
-            healthSlider.value = currentHealth;
-        }
+        this.hud = hud;
+        hud?.UpdateHealth(currentHealth, maxHealth);
     }
 }

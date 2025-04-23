@@ -1,283 +1,133 @@
 using UnityEngine;
-using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 
-
 public class LocalPlayer : NetworkBehaviour
 {
-
-    // ###### VARIABLES ######
-
-    // HUD variables
+    [Header("HUD Settings")]
     public GameObject HUDCanvasPrefab;
-    private GameObject HUDInstance;
-    // Movement variables
-
-    [Header("Movement Settings")]
-    public float moveSpeed = 5f;
-    // Dash variables
-    public float dashForce = 10f;
-    public float dashCooldown = 1f;
-    public float dashDuration = 0.2f;
-    private bool isDashing = false;
-    private float lastDashTime = -999f;
-    private Vector2 dashDirection;
-
-    [Header("Player Settings")]
-    private string PlayerName = "Player"; // Default name for the player
-    // Shooting variables
-    //public GameObject projectilePrefab;
-    //public Transform shootingPoint;
-    public float playerDamage = 10f;
-    public float shootCooldown = 0.5f;
-    private float lastShootTime;
     
-    // Components
+    [Header("Debug Settings")]
+    public KeyCode debugDamageKey = KeyCode.Space;
+    public KeyCode debugExpKey = KeyCode.E;
+    public float debugDamageAmount = 10f;
+    public float debugExpAmount = 30f;
+
+    // Component References
+    private GameObject HUDInstance;
+    private PlayerHUDController hudController;
     private Rigidbody2D rb;
     private TowerHealth towerHealth;
-    private Animator animator;
+
+    [Header("Player Components")]
     private PlayerHealth healthComponent;
     private PlayerExperience experienceComponent;
-    // Networking
-    //public NetworkVariable<Vector2> Position = new NetworkVariable<Vector2>();
+    private PlayerMovement playerMovement;
 
-    // Animation tracking
-    private string currentAnimation = "";
-
-
-
-    // ###### Base Functions ######
-
-
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
-    {   // Initialize components and variables
-
-        rb = GetComponent<Rigidbody2D>(); 
-        // Mitigation against Shaking
-        rb.interpolation = RigidbodyInterpolation2D.Interpolate; 
-
-        // Animator Initialization
-        animator = GetComponent<Animator>();
-
-        // Health Initialization
-
+    {
+        InitializeComponents();
+        
         if (IsOwner && PlayerCameraFollow_Smooth.Instance != null)
         {
             PlayerCameraFollow_Smooth.Instance.SetTarget(transform);
-            SpawnHUD(); // Spawn HUD only for the owner
-            InitializeHealthComponent();
-            InitializeExperienceComponent(); // Initialize experience component
-            InitializeTowerHealthComponent(); // <- New line here
+            InitializeHUD();
         }
-
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (!IsOwner) return; // Only the owner can control the player
-        // Player Movement and Animation
-        Move();
-        TestDamage(); // Test damage function for debugging
-        TestExperience(); // Test experience function for debugging
-        HandleDashInput(); // Handle dash input
+        if (!IsOwner) return;
+
+        HandleDebugInput();
     }
 
-
-
-    // ##### Custom Functions #####
-
-
-    void SpawnHUD()
+    private void InitializeComponents()
     {
-        if (HUDCanvasPrefab != null)
-        {
-
-            Canvas canvas = FindObjectOfType<Canvas>();
-
-            HUDInstance = Instantiate(HUDCanvasPrefab, canvas.transform);
+        rb = GetComponent<Rigidbody2D>();
+        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         
+        healthComponent = GetComponent<PlayerHealth>();
+        experienceComponent = GetComponent<PlayerExperience>();
+        playerMovement = GetComponent<PlayerMovement>();
+        
+        FindTowerHealth();
+    }
 
+    private void InitializeHUD()
+    {
+        Canvas mainCanvas = FindObjectOfType<Canvas>();
+        GameObject hudInstance;
+        
+        if (mainCanvas != null)
+        {
+            hudInstance = Instantiate(HUDCanvasPrefab, mainCanvas.transform);
         }
         else
         {
-            Debug.LogWarning("HUD Prefab is not assigned!");
+            hudInstance = Instantiate(HUDCanvasPrefab);
+            Debug.LogWarning("No main Canvas found in scene - creating standalone HUD");
         }
 
+        hudController = hudInstance.GetComponent<PlayerHUDController>();
+        hudController.Initialize(
+            GetComponent<PlayerHealth>(),
+            GetComponent<PlayerExperience>(),
+            FindObjectOfType<TowerHealth>()
+        );
     }
 
-        void HandleDashInput()
+    private void FindTowerHealth()
     {
-        Debug.Log("HandleDashInput called"); // Debug log to check if the function is being called
-        if (isDashing) return; // Prevent dashing while already dashing
-        if (Input.GetKeyDown(KeyCode.V) && Time.time >= lastDashTime + dashCooldown)
+        GameObject tower = GameObject.FindGameObjectWithTag("Tower");
+        if (tower != null)
         {
-            Vector2 inputDirection = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
-            if (inputDirection.sqrMagnitude > 0.1f)
+            towerHealth = tower.GetComponent<TowerHealth>();
+            if (towerHealth == null)
             {
-                StartCoroutine(PerformDash(inputDirection));
+                Debug.LogWarning("Tower found but missing TowerHealth component");
             }
         }
-    }
-
-
-    private void InitializeHealthComponent()
-    {
-        healthComponent = GetComponent<PlayerHealth>();
-        if (healthComponent != null)
-        {
-            healthComponent.SetHUDReference(HUDInstance); // New method we'll add
-        }
-    }
-
-    private void InitializeTowerHealthComponent()
-    {
-        // Optional: assign the tower via inspector if there's only one
-        towerHealth = GameObject.FindGameObjectWithTag("Tower")?.GetComponent<TowerHealth>();
-
-        if (towerHealth != null)
-        {
-            towerHealth.OnHealthChanged += UpdateTowerHealthHUD;
-        }
         else
         {
-            Debug.LogWarning("TowerHealth component not found! Check Tower GameObject has correct tag and component.");
-        }
-
-        if (towerHealth != null)
-        {
-            towerHealth.OnHealthChanged += UpdateTowerHealthHUD;
-        }
-        else
-        {
-            Debug.LogWarning("TowerHealth component not found!");
+            Debug.LogWarning("No GameObject with 'Tower' tag found in scene");
         }
     }
 
-    private void UpdateTowerHealthHUD(float current, float max)
+    private void HandleDebugInput()
     {
-        if (HUDInstance == null) return;
-
-        Slider towerSlider = HUDInstance.transform.Find("HealthBarTower_main")?.GetComponent<Slider>();
-        if (towerSlider != null)
+        if (Input.GetKeyDown(debugDamageKey))
         {
-            towerSlider.maxValue = max;
-            towerSlider.value = current;
+            TakeDamage(debugDamageAmount, "DebugDamage");
         }
-        else
+
+        if (Input.GetKeyDown(debugExpKey))
         {
-            Debug.LogWarning("TowerHealthBar not found in HUD!");
-        }
-    }
-
-
-    private void InitializeExperienceComponent()
-    {
-        experienceComponent = GetComponent<PlayerExperience>();
-        if (experienceComponent != null)
-        {
-            experienceComponent.SetHUDReference(HUDInstance); // New method we'll add
-        }
-    }
-
-
-    public void Move()
-    {
-        if (isDashing) return; // ADD THIS at the top of Move()
-        float moveX = Input.GetAxis("Horizontal") * moveSpeed;
-        float moveY = Input.GetAxis("Vertical") * moveSpeed;
-
-        Vector2 movement = new Vector2(moveX, moveY);
-        rb.linearVelocity = movement;
-        // Simplified animation switching
-        if (movement.magnitude > 0.1f)
-        {
-            ChangeAnimation(Mathf.Abs(moveX) > Mathf.Abs(moveY) 
-                ? moveX > 0 ? "walk_right" : "walk_left" 
-                : moveY > 0 ? "walk_up" : "walk_down");
-        }
-        else
-        {
-            ChangeAnimation("idle");
+            // Updated to use the new XPManager system
+            if (XPManager.Instance != null)
+            {
+                XPManager.Instance.AwardXP(NetworkManager.LocalClientId, (int)debugExpAmount);
+            }
+            else
+            {
+                Debug.LogError("XPManager instance not found!");
+            }
         }
     }
 
     public void TakeDamage(float damage, string source)
     {
+        if (!IsOwner) return;
+        
         healthComponent?.TakeDamage((int)damage);
-        Debug.Log($"Player took {damage} from {source}!");
+        Debug.Log($"{gameObject.name} took {damage} damage from {source}");
     }
 
-    // Function to shoot a projectile **TODO**
-
-    public void ChangeAnimation(string animation, float crossfade = 0.1f)
+    private void OnDestroy()
     {
-        if (currentAnimation != animation)
+        if (towerHealth != null && hudController != null)
         {
-            if (animation == "idle")
-            {
-                animation = currentAnimation switch
-                {
-                    _ when currentAnimation.EndsWith("_right") => "idle_right",
-                    _ when currentAnimation.EndsWith("_left") => "idle_left",
-                    _ when currentAnimation.EndsWith("_up") => "idle_up",
-                    _ when currentAnimation.EndsWith("_down") => "idle_down",
-                    _ => animation
-                };
-            }
-
-            currentAnimation = animation;
-            animator.CrossFade(animation, crossfade);
+            towerHealth.OnHealthChanged -= hudController.UpdateTowerHealth;
         }
     }
-
-    public void Shoot()
-    {
-        Debug.Log("Shooting");
-    }
-
-
-    private void Die()
-    {
-        Debug.Log("Player died!");
-    }
-
-
-    private void TestDamage()
-    {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            TakeDamage(10f, "TestDamage");
-        }
-    }
-
-private void TestExperience()
-{
-    if (Input.GetKeyDown(KeyCode.E))
-    {
-        experienceComponent?.GainEXPServerRpc(30f); // Gain 30 EXP on E key
-    }
-}
-
-    private System.Collections.IEnumerator PerformDash(Vector2 direction)
-    {
-        isDashing = true;
-        lastDashTime = Time.time;
-
-        rb.linearVelocity = direction * dashForce;
-
-        yield return new WaitForSeconds(dashDuration);
-
-        // Only reset velocity if player isn't pressing movement keys
-        Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
-        if (input == Vector2.zero)
-            rb.linearVelocity = Vector2.zero;
-
-        isDashing = false;
-    }
-
-
 }

@@ -1,131 +1,74 @@
 using UnityEngine;
 using Unity.Netcode;
-using UnityEngine.UI;
-using TMPro;
+using System;
 
 public class PlayerExperience : NetworkBehaviour
 {
-    public int currentLevel = 1;
-    public float currentEXP = 0f;
-    public float expToNextLevel = 100f;
-    public GameObject floatingExpTextPrefab;
-    private Slider expSlider;
-    private GameObject hudContainer;
-    private TextMeshProUGUI levelText;
+    public event Action<float, float, int> OnExpChanged;
+    
+    [SerializeField] private float expToNextLevel = 100f;
+    [SerializeField] private float levelUpMultiplier = 1.25f;
 
-    // Set HUD reference for the player
-    public void SetHUDReference(GameObject hud)
+    public float CurrentExp => currentEXP.Value;
+    public float MaxExp => expToNextLevel;
+    public int CurrentLevel => currentLevel.Value;
+    
+    private NetworkVariable<float> currentEXP = new NetworkVariable<float>(
+        readPerm: NetworkVariableReadPermission.Everyone,
+        writePerm: NetworkVariableWritePermission.Server
+    );
+    
+    private NetworkVariable<int> currentLevel = new NetworkVariable<int>(
+        1,
+        readPerm: NetworkVariableReadPermission.Everyone,
+        writePerm: NetworkVariableWritePermission.Server
+    );
+
+    public override void OnNetworkSpawn()
     {
-        hudContainer = hud;
-        InitializeExpBar();
-        InitializeLevelText();
+        currentEXP.OnValueChanged += HandleExpChanged;
+        currentLevel.OnValueChanged += HandleLevelChanged;
+        UpdateExp();
     }
 
-    private void InitializeExpBar()
+    public override void OnNetworkDespawn()
     {
-        if (hudContainer == null) return;
-
-        expSlider = hudContainer.transform.Find("ExperienceBar")?.GetComponent<Slider>();
-        if (expSlider == null)
-        {
-            Debug.LogError("EXPBar Slider not found!");
-            return;
-        }
-
-        expSlider.maxValue = expToNextLevel;
-        expSlider.value = currentEXP;
+        currentEXP.OnValueChanged -= HandleExpChanged;
+        currentLevel.OnValueChanged -= HandleLevelChanged;
     }
 
-    private void InitializeLevelText()
+    public void AddXP(int amount)
     {
-        if (hudContainer == null) return;
-
-        levelText = hudContainer.transform.Find("PlayerLevel")?.GetComponent<TextMeshProUGUI>();
-        if (levelText == null)
-        {
-            Debug.LogError("PlayerLevel TextMeshProUGUI not found!");
-            return;
-        }
-
-        levelText.text = $"{currentLevel}";
-    }
-
-    // This is called on the server to add EXP
-    [ServerRpc(RequireOwnership = false)]
-    public void GainEXPServerRpc(float amount)
-    {
-        // Make sure only the server handles the EXP gain
-        GainEXP(amount);
-
-        // Notify all clients about the EXP update
-        NotifyClientsOfExpUpdateClientRpc(currentEXP, currentLevel);
-    }
-
-    // Actual logic to increase experience and level up
-    private void GainEXP(float amount)
-    {
-        currentEXP += amount;
-        ShowFloatingText($"+{amount} EXP");
-
-        Debug.Log($"Gained {amount} EXP. Total: {currentEXP}/{expToNextLevel}");
-
-        if (currentEXP >= expToNextLevel)
+        if (!IsServer) return;
+        
+        currentEXP.Value += amount;
+        
+        if (currentEXP.Value >= expToNextLevel)
         {
             LevelUp();
         }
-
-        if (expSlider != null)
-        {
-            expSlider.value = currentEXP;
-        }
     }
 
-    // Handle leveling up logic
     private void LevelUp()
     {
-        currentLevel++;
-        currentEXP -= expToNextLevel;
-        expToNextLevel *= 1.25f;
-
-        Debug.Log($"Leveled Up! New Level: {currentLevel}");
-
-        if (expSlider != null)
-        {
-            expSlider.maxValue = expToNextLevel;
-            expSlider.value = currentEXP;
-        }
-
-        if (levelText != null)
-        {
-            levelText.text = $"{currentLevel}";
-        }
+        currentEXP.Value -= expToNextLevel;
+        expToNextLevel *= levelUpMultiplier;
+        currentLevel.Value++;
     }
 
-    // Display floating text when gaining experience
-    private void ShowFloatingText(string message)
+    private void HandleExpChanged(float oldVal, float newVal)
     {
-        if (floatingExpTextPrefab == null || hudContainer == null) return;
-
-        GameObject textObj = Instantiate(floatingExpTextPrefab, hudContainer.transform);
-        textObj.transform.localPosition = new Vector3(0, 50, 0); // Offset for visibility
-        FloatingText floatingText = textObj.GetComponent<FloatingText>();
-        floatingText?.SetText(message);
+        UpdateExp();
     }
 
-    // ClientRPC to notify all clients to update their EXP UI
-    [ClientRpc]
-    private void NotifyClientsOfExpUpdateClientRpc(float updatedExp, int updatedLevel)
+    private void HandleLevelChanged(int oldVal, int newVal)
     {
-        // Update the EXP UI for all clients
-        if (expSlider != null)
-        {
-            expSlider.value = updatedExp;
-            expSlider.maxValue = expToNextLevel;
-        }
+        UpdateExp();
+    }
 
-        if (levelText != null)
-        {
-            levelText.text = $"{updatedLevel}";
-        }
+    private void UpdateExp()
+    {
+        OnExpChanged?.Invoke(currentEXP.Value, expToNextLevel, currentLevel.Value);
+        Debug.Log($"EXP Updated - Client {OwnerClientId}: {currentEXP.Value}/{expToNextLevel} LVL:{currentLevel.Value}");
     }
 }
