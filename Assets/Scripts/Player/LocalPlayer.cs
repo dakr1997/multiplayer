@@ -13,8 +13,18 @@ public class LocalPlayer : NetworkBehaviour
     public GameObject HUDCanvasPrefab;
     private GameObject HUDInstance;
     // Movement variables
+
+    [Header("Movement Settings")]
     public float moveSpeed = 5f;
-    
+    // Dash variables
+    public float dashForce = 10f;
+    public float dashCooldown = 1f;
+    public float dashDuration = 0.2f;
+    private bool isDashing = false;
+    private float lastDashTime = -999f;
+    private Vector2 dashDirection;
+
+    [Header("Player Settings")]
     private string PlayerName = "Player"; // Default name for the player
     // Shooting variables
     //public GameObject projectilePrefab;
@@ -73,6 +83,7 @@ public class LocalPlayer : NetworkBehaviour
         Move();
         TestDamage(); // Test damage function for debugging
         TestExperience(); // Test experience function for debugging
+        HandleDashInput(); // Handle dash input
     }
 
 
@@ -97,6 +108,21 @@ public class LocalPlayer : NetworkBehaviour
         }
 
     }
+
+        void HandleDashInput()
+    {
+        Debug.Log("HandleDashInput called"); // Debug log to check if the function is being called
+        if (isDashing) return; // Prevent dashing while already dashing
+        if (Input.GetKeyDown(KeyCode.V) && Time.time >= lastDashTime + dashCooldown)
+        {
+            Vector2 inputDirection = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
+            if (inputDirection.sqrMagnitude > 0.1f)
+            {
+                StartCoroutine(PerformDash(inputDirection));
+            }
+        }
+    }
+
 
     private void InitializeHealthComponent()
     {
@@ -160,6 +186,7 @@ public class LocalPlayer : NetworkBehaviour
 
     public void Move()
     {
+        if (isDashing) return; // ADD THIS at the top of Move()
         float moveX = Input.GetAxis("Horizontal") * moveSpeed;
         float moveY = Input.GetAxis("Vertical") * moveSpeed;
 
@@ -234,4 +261,23 @@ private void TestExperience()
         experienceComponent?.GainEXPServerRpc(30f); // Gain 30 EXP on E key
     }
 }
+
+    private System.Collections.IEnumerator PerformDash(Vector2 direction)
+    {
+        isDashing = true;
+        lastDashTime = Time.time;
+
+        rb.linearVelocity = direction * dashForce;
+
+        yield return new WaitForSeconds(dashDuration);
+
+        // Only reset velocity if player isn't pressing movement keys
+        Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
+        if (input == Vector2.zero)
+            rb.linearVelocity = Vector2.zero;
+
+        isDashing = false;
+    }
+
+
 }
