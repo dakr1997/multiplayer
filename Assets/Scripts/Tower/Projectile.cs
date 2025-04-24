@@ -12,6 +12,13 @@ public class Projectile : NetworkBehaviour // Inherit from NetworkBehaviour
     private float damage;          // Damage to be dealt
     private string source;         // Source of the projectile
 
+
+    public void Initialize(Vector3 direction, float damage, string source)
+    {
+        SetDirection(direction);
+        SetDamage(damage);
+        SetSource(source);
+    }
     public void SetSource(string src)
     {
         source = src;

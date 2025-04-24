@@ -3,10 +3,10 @@ using Unity.Netcode;
 
 public class Tower : NetworkBehaviour
 {
+    [Header("Tower Settings")]
     public float TowerRange = 5f;
     public float fireRate = 1f;
     public float TowerDamage = 10;
-    public bool isTower = true;
     private float lastFireTime;
     public Transform TowerShootingPoint;
     public GameObject projectilePrefab;
@@ -15,19 +15,46 @@ public class Tower : NetworkBehaviour
     public float predictionTime = 1f;
     private GameObject currentTarget;
 
-    void Start()
-    {
-        if (!IsServer) return; // Prevent client-side logic
+    // Health
+    private HealthComponent health;
+    private bool isDead = false;
 
+    public override void OnNetworkSpawn()
+    {
+        if (!IsServer) return;
+
+        InitializeTower();
+    }
+
+    public void InitializeTower()
+    {
         lastFireTime = Time.time;
         aimSystem = new Aim();
+
+        health = GetComponent<HealthComponent>();
+        if (health != null)
+        {
+            health.OnDied += HandleTowerDeath;
+        }
+        else
+        {
+            Debug.LogError("HealthComponent missing from Tower!");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (health != null)
+        {
+            health.OnDied -= HandleTowerDeath;
+        }
     }
 
     private void Update()
     {
-        if (!IsServer) return; // Ensure only server handles targeting and firing
+        if (!IsServer || isDead) return;
 
-        UpdateTargets(); // Continuously update target prediction
+        UpdateTargets();
 
         if (Time.time - lastFireTime >= 1f / fireRate)
         {
@@ -62,7 +89,9 @@ public class Tower : NetworkBehaviour
 
     private void UpdateTargets()
     {
-        if (currentTarget == null || Vector3.Distance(transform.position, currentTarget.transform.position) > TowerRange)
+        if (currentTarget == null || 
+            !currentTarget.activeInHierarchy || 
+            Vector3.Distance(transform.position, currentTarget.transform.position) > TowerRange)
         {
             currentTarget = FindClosestEnemy();
             aimSystem = new Aim();
@@ -74,47 +103,40 @@ public class Tower : NetworkBehaviour
 
     private void Fire()
     {
-        // Ensure we’re only running this on the server
-        if (!IsServer) return;
-
         if (TowerShootingPoint == null || projectilePrefab == null)
         {
             Debug.LogError("Assign TowerShootingPoint and projectilePrefab in the Inspector!");
             return;
         }
 
-        if (currentTarget == null)
-            return;
+        if (currentTarget == null) return;
 
-        // Predict enemy's future position
         Vector3? predictedPosition = aimSystem.PredictTargetPosition(currentTarget.transform, predictionTime);
-        if (predictedPosition == null)
-            return;
+        if (predictedPosition == null) return;
 
-        // Rotate tower to face target
         Vector3 direction = (predictedPosition.Value - TowerShootingPoint.position).normalized;
         TowerShootingPoint.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
 
-        // Spawn projectile from server
+        SpawnProjectile(direction);
+    }
+
+    private void SpawnProjectile(Vector3 direction)
+    {
         GameObject projectile = Instantiate(projectilePrefab, TowerShootingPoint.position, TowerShootingPoint.rotation);
         
         NetworkObject netObj = projectile.GetComponent<NetworkObject>();
-        if (netObj != null)
-        {
-            netObj.Spawn(true); // true = server owns it
-        }
-        else
+        if (netObj == null)
         {
             Debug.LogError("Missing NetworkObject on projectile prefab!");
+            Destroy(projectile);
             return;
         }
 
-        // Initialize projectile logic
+        netObj.Spawn(true);
+
         if (projectile.TryGetComponent<Projectile>(out Projectile projectileScript))
         {
-            projectileScript.SetDirection(direction);
-            projectileScript.SetDamage(TowerDamage);
-            projectileScript.SetSource("Tower");
+            projectileScript.Initialize(direction, TowerDamage, "Tower");
         }
         else
         {
@@ -122,4 +144,50 @@ public class Tower : NetworkBehaviour
         }
     }
 
+    private void HandleTowerDeath()
+    {
+        if (!IsServer || isDead) return;
+        
+        isDead = true;
+        Debug.Log($"Destroying tower {gameObject.name}");
+        
+        // Disable components immediately
+        GetComponent<Collider2D>().enabled = false;
+        enabled = false;
+
+        // Play death effects
+        PlayDeathEffectsClientRpc();
+
+        if (IsSceneObject())
+        {
+            // Handle static scene object destruction
+            gameObject.SetActive(false);
+            SetTowerActiveClientRpc(false);
+            Destroy(gameObject, 1f);
+        }
+        else
+        {
+            // Handle spawned prefab destruction
+            GetComponent<NetworkObject>().Despawn(true);
+            Destroy(gameObject, 1f);
+        }
+    }
+
+    [ClientRpc]
+    private void PlayDeathEffectsClientRpc()
+    {
+        // Play visual/sound effects here
+        // This runs on all clients
+    }
+
+    [ClientRpc]
+    private void SetTowerActiveClientRpc(bool active)
+    {
+        gameObject.SetActive(active);
+    }
+
+    private bool IsSceneObject()
+    {
+        return GetComponent<NetworkObject>().IsSceneObject != null;
+    }
 }

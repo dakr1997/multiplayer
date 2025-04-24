@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using Unity.Netcode;
 
 public class PlayerHUDController : MonoBehaviour
 {
@@ -51,7 +52,7 @@ public class PlayerHUDController : MonoBehaviour
         if (tower != null)
         {
             tower.OnHealthChanged += UpdateTowerHealth;
-            UpdateTowerHealth(tower.CurrentHealth, tower.MaxHealth);
+            UpdateTowerHealth(tower.CurrentHP, tower.MaxHP);
         }
     }
 

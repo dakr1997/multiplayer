@@ -1,43 +1,51 @@
 using UnityEngine;
 using Unity.Netcode;
-
-public class PlayerClientHandler : MonoBehaviour
+using Unity.Collections;
+using System.Collections;
+using System.Collections.Generic;
+public class PlayerClientHandler : NetworkBehaviour
 {
-    [Header("HUD Settings")]
-    public GameObject HUDCanvasPrefab;
-
-    [Header("Debug Settings")]
-    public KeyCode debugDamageKey = KeyCode.Space;
-    public KeyCode debugExpKey = KeyCode.E;
-    public float debugDamageAmount = 10f;
-    public float debugExpAmount = 30f;
-
     private GameObject hudInstance;
     private PlayerHUDController hudController;
-    private TowerHealth towerHealth;
 
+    public GameObject HUDCanvasPrefab; // Assign this in the inspector
     private PlayerEntity player;
 
     public void Initialize(PlayerEntity entity)
     {
         player = entity;
-
         SetupCamera();
         SetupHUD();
-        FindTowerHealth();
     }
 
     private void Update()
     {
-        if (!player.IsOwner) return;
-        HandleDebugInput();
-    }
+        if (!IsOwner) return; // Only the local player should handle input
 
-    private void SetupCamera()
-    {
-        if (PlayerCameraFollow_Smooth.Instance != null)
+        if (Input.GetKeyDown(KeyCode.X)) // Press "X" to test XP gain
         {
-            PlayerCameraFollow_Smooth.Instance.SetTarget(player.transform);
+            Debug.Log($"[XP TEST] Player {OwnerClientId} requesting 50 XP");
+
+            if (XPManager.Instance != null)
+            {
+                XPManager.Instance.AwardXPToAll(50); // Give 50 XP to self
+            }
+            else
+            {
+                Debug.LogError("[XP TEST] XPManager instance not found!");
+            }
+        }
+        if (Input.GetKeyDown(KeyCode.H)) // Press "H" to test damage
+        {
+            if (HPManager.Instance != null)
+            {
+                Debug.Log($"[XP TEST] Player {OwnerClientId} requesting 50 HP");
+                HPManager.Instance.RequestTowerHpUpdateServerRpc(50); // Give 50 XP to self
+            }
+            else
+            {
+                Debug.LogError("[XP TEST] XPManager instance not found!");
+            }
         }
     }
 
@@ -59,52 +67,18 @@ public class PlayerClientHandler : MonoBehaviour
         hudController.Initialize(
             player.HealthComponent,
             player.ExperienceComponent,
-            FindObjectOfType<TowerHealth>()
+            player.TowerHealthComponent
         );
     }
 
-    private void FindTowerHealth()
+
+    private void SetupCamera()
     {
-        GameObject tower = GameObject.FindGameObjectWithTag("Tower");
-        if (tower != null)
+        if (PlayerCameraFollow_Smooth.Instance != null)
         {
-            towerHealth = tower.GetComponent<TowerHealth>();
-            if (towerHealth == null)
-            {
-                Debug.LogWarning("Tower found but missing TowerHealth component");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("No GameObject with 'Tower' tag found in scene");
+            PlayerCameraFollow_Smooth.Instance.SetTarget(player.transform);
         }
     }
 
-    private void HandleDebugInput()
-    {
-        if (Input.GetKeyDown(debugDamageKey))
-        {
-            player.HealthComponent?.TakeDamage((int)debugDamageAmount);
-        }
-
-        if (Input.GetKeyDown(debugExpKey))
-        {
-            if (XPManager.Instance != null)
-            {
-                XPManager.Instance.AwardXPToAll((int)debugExpAmount);
-            }
-            else
-            {
-                Debug.LogError("XPManager instance not found!");
-            }
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (towerHealth != null && hudController != null)
-        {
-            towerHealth.OnHealthChanged -= hudController.UpdateTowerHealth;
-        }
-    }
+ 
 }

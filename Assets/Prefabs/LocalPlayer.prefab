@@ -53,6 +53,8 @@ GameObject:
   - component: {fileID: 1005090387922136128}
   - component: {fileID: 5198997713752091062}
   - component: {fileID: 1677799336585110302}
+  - component: {fileID: -4812642097262015697}
+  - component: {fileID: 3693052222909861857}
   m_Layer: 0
   m_Name: LocalPlayer
   m_TagString: Player
@@ -221,11 +223,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ded86a5fd6d0bc4893759aba1ca0bc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   HUDCanvasPrefab: {fileID: 4895103260644722553, guid: 66e4affe04a972c45af60c62f421f53c, type: 3}
-  debugDamageKey: 32
-  debugExpKey: 101
-  debugDamageAmount: 10
-  debugExpAmount: 30
 --- !u!114 &2050900261553466437
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -404,3 +403,36 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   TransitionStateInfoList: []
   m_Animator: {fileID: 4881445962317876395}
+--- !u!114 &-4812642097262015697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892764523323301376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 370820bb6e7fb2b4b86658e85d6c0022, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  damageAmount: 10
+  damageRadius: 5
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &3693052222909861857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892764523323301376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91d4c66493620a64aade5bb9c947e1f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  expToNextLevel: 100
+  levelUpMultiplier: 1.25

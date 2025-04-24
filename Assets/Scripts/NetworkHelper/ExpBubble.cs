@@ -75,7 +75,7 @@ public class ExpBubble : NetworkBehaviour
         ulong collectorId = targetPlayer.GetComponent<NetworkObject>().OwnerClientId;
         Debug.Log($"[SERVER] Bubble collected by player {collectorId}");
         
-        // Award XP only to the collecting player
+        // Award XP to all Players
         XPManager.Instance.AwardXPToAll(expAmount);
         
         // Despawn the bubble

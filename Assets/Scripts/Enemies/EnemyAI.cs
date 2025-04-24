@@ -2,111 +2,46 @@ using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
 
-public class EnemyAI : NetworkBehaviour, IDamageable
+[RequireComponent(typeof(HealthComponent), typeof(Rigidbody2D))]
+public class EnemyAI : NetworkBehaviour
 {
-    // Health variables
-    [Header("Health Settings")]
-    public float maxHealth = 100f;
-    private float currentHealth;
-    public bool isEnemy = true; // Flag to identify this as an enemy
-    
-    // Movement variables
-    [Header("Movement Settings")]
+    [Header("Settings")]
     public float moveSpeed = 3f;
-    private List<Transform> targets = new List<Transform>(); // Reference to the target points e.g. Towers, Player, etc.
-    private int currentPoint = 0;
+    public bool isEnemy = true;
+
+    [Header("Targeting")]
+    private List<Transform> targets = new List<Transform>();
     private Vector2 randomDirection;
     private float directionChangeTime = 2f;
     private float lastDirectionChange;
-    private Rigidbody2D rb;
 
-    public bool IsAlive => currentHealth > 0f;
+    private Rigidbody2D rb;
+    private HealthComponent health;
 
     public static event System.Action<EnemyAI> OnEnemySpawned;
     public static event System.Action<EnemyAI> OnEnemyDied;
 
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        health = GetComponent<HealthComponent>();
+        health.OnDied += HandleDeath;
+    }
+
     private void Start()
     {
         OnEnemySpawned?.Invoke(this);
-        rb = GetComponent<Rigidbody2D>();
-
-        FindTargets(); // Find all targets in the scene
         randomDirection = Random.insideUnitCircle.normalized;
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        if (IsServer)
-            currentHealth = maxHealth;
-    }
-
-    public void TakeDamage(float amount, string source = null)
-    {
-        Debug.Log($"TakeDamage called on {gameObject.name} with amount: {amount} and source: {source}");
-        if (!IsServer) return;
-
-        currentHealth -= amount;
-        Debug.Log($"{gameObject.name} took {amount} damage from {source}");
-
-        if (currentHealth <= 0f)
-        {
-            Die();
-        }
-    }
-
-    private void Die()
-    {
-        Debug.Log($"{gameObject.name} has died.");
-
-        if (IsServer)
-        {
-            OnEnemyDied?.Invoke(this);
-        }
-
-        GetComponent<NetworkObject>().Despawn();
-
-            // Despawn the enemy from the network
-            GetComponent<NetworkObject>().Despawn();
-        }
-
-    private void FindTargets()
-    {
-        GameObject[] towerObjects = GameObject.FindGameObjectsWithTag("Tower");
-        foreach (GameObject tower in towerObjects)
-        {
-            AddTarget(tower.transform);
-        }
-
-        GameObject[] playerObjects = GameObject.FindGameObjectsWithTag("Player");
-        foreach (GameObject player in playerObjects)
-        {
-            AddTarget(player.transform);
-        }
+        FindTargets();
     }
 
     private void Update()
     {
-        if (!IsServer) return; // Only server controls AI
-        Move(); // Call the Move function to move the enemy
+        if (!IsServer) return;
+        Move();
     }
 
-    void AddTarget(Transform target)
-    {
-        if (!targets.Contains(target))
-        {
-            targets.Add(target);
-        }
-    }
-
-    void RemoveTarget(Transform target)
-    {
-        if (targets.Contains(target))
-        {
-            targets.Remove(target);
-        }
-    }
-
-    void Move()
+    private void Move()
     {
         if (Time.time - lastDirectionChange > directionChangeTime)
         {
@@ -127,7 +62,40 @@ public class EnemyAI : NetworkBehaviour, IDamageable
         rb.linearVelocity = moveDirection * moveSpeed;
     }
 
-    Transform GetClosestTarget()
+    private void HandleDeath()
+    {
+        Debug.Log($"{gameObject.name} has died.");
+        OnEnemyDied?.Invoke(this);
+
+        if (IsServer)
+        {
+            GetComponent<NetworkObject>().Despawn();
+        }
+    }
+
+    private void FindTargets()
+    {
+        AddTargetsWithTag("Tower");
+        AddTargetsWithTag("Player");
+    }
+
+    private void AddTargetsWithTag(string tag)
+    {
+        foreach (var obj in GameObject.FindGameObjectsWithTag(tag))
+        {
+            if (obj != null) AddTarget(obj.transform);
+        }
+    }
+
+    private void AddTarget(Transform target)
+    {
+        if (!targets.Contains(target))
+        {
+            targets.Add(target);
+        }
+    }
+
+    private Transform GetClosestTarget()
     {
         Transform closest = null;
         float minDist = float.MaxValue;
