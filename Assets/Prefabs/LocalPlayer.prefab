@@ -44,7 +44,8 @@ GameObject:
   - component: {fileID: 968217977783758325}
   - component: {fileID: 4881445962317876395}
   - component: {fileID: 3264262347001323542}
-  - component: {fileID: 9130299977010020765}
+  - component: {fileID: 3118551079250719226}
+  - component: {fileID: 6341009488174301840}
   - component: {fileID: 2050900261553466437}
   - component: {fileID: 3214636210248206796}
   - component: {fileID: -7040602349829137824}
@@ -195,7 +196,7 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &9130299977010020765
+--- !u!114 &3118551079250719226
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -204,10 +205,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 7892764523323301376}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7340364fc95e1541a5abe8c8df8d810, type: 3}
+  m_Script: {fileID: 11500000, guid: 4d2876fc5ded17847b9615c86388dc88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &6341009488174301840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892764523323301376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ded86a5fd6d0bc4893759aba1ca0bc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   HUDCanvasPrefab: {fileID: 4895103260644722553, guid: 66e4affe04a972c45af60c62f421f53c, type: 3}
   debugDamageKey: 32
   debugExpKey: 101
