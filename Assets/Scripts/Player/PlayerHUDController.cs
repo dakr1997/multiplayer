@@ -11,24 +11,11 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private Slider expBar;
     [SerializeField] private TextMeshProUGUI levelText;
     [SerializeField] private Slider towerHealthBar;
-    [SerializeField] private Transform floatingTextRoot;
-    [SerializeField] private FloatingText floatingTextPrefab;
 
     [Header("Settings")]
     [SerializeField] private Vector3 floatingTextOffset = new Vector3(0, 50, 0);
-    [SerializeField] private int initialPoolSize = 5;
 
-    private Queue<FloatingText> textPool = new Queue<FloatingText>();
-
-    private void Awake()
-    {
-        if (floatingTextPrefab != null && floatingTextRoot != null)
-        {
-            InitializeTextPool();
-        }
-    }
-
-    public void Initialize(PlayerHealth health, PlayerExperience exp, TowerHealth tower)
+    public void Initialize(PlayerHealth health, PlayerExperience exp, MainTowerHP tower)
     {
         if (health != null)
         {
@@ -51,32 +38,13 @@ public class PlayerHUDController : MonoBehaviour
 
         if (tower != null)
         {
-            tower.OnHealthChanged += UpdateTowerHealth;
-            UpdateTowerHealth(tower.CurrentHP, tower.MaxHP);
+            // Listen directly to NetworkVariable changes
+            tower.CurrentHP.OnValueChanged += (oldVal, newVal) => 
+            UpdateTowerHealth(newVal, MainTowerHP.MaxHP);
+            
+            // Initial update
+            UpdateTowerHealth(tower.CurrentHP.Value, MainTowerHP.MaxHP);
         }
-    }
-
-    private void InitializeTextPool()
-    {
-        for (int i = 0; i < initialPoolSize; i++)
-        {
-            CreateNewTextObject();
-        }
-    }
-
-    private FloatingText CreateNewTextObject()
-    {
-        FloatingText text = Instantiate(floatingTextPrefab, floatingTextRoot);
-        text.gameObject.SetActive(false);
-        text.OnTextComplete += () => ReturnTextToPool(text);
-        textPool.Enqueue(text);
-        return text;
-    }
-
-    private void ReturnTextToPool(FloatingText text)
-    {
-        text.gameObject.SetActive(false);
-        textPool.Enqueue(text);
     }
 
     public void UpdateHealth(float current, float max)
@@ -112,35 +80,5 @@ public class PlayerHUDController : MonoBehaviour
             towerHealthBar.maxValue = max;
             towerHealthBar.value = Mathf.Clamp(current, 0, max);
         }
-    }
-
-    public void ShowFloatingText(string message)
-    {
-        if (floatingTextPrefab == null || floatingTextRoot == null) return;
-
-        FloatingText text = GetPooledText();
-        text.transform.localPosition = floatingTextOffset;
-        text.SetText(message);
-        text.gameObject.SetActive(true);
-    }
-
-    private FloatingText GetPooledText()
-    {
-        if (textPool.Count == 0)
-        {
-            CreateNewTextObject();
-        }
-
-        FloatingText text = textPool.Dequeue();
-        return text ?? CreateNewTextObject();
-    }
-
-    private void OnDestroy()
-    {
-        foreach (var text in textPool)
-        {
-            if (text != null) Destroy(text.gameObject);
-        }
-        textPool.Clear();
     }
 }

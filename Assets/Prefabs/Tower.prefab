@@ -15,8 +15,8 @@ GameObject:
   - component: {fileID: 2306353313874076317}
   - component: {fileID: 5645829157016721255}
   - component: {fileID: 4083045817391021963}
-  - component: {fileID: -50666777863427357}
-  m_Layer: 3
+  - component: {fileID: 7828921738925912506}
+  m_Layer: 0
   m_Name: Tower
   m_TagString: Tower
   m_Icon: {fileID: 0}
@@ -257,7 +257,7 @@ MonoBehaviour:
   TowerShootingPoint: {fileID: 2852416105238808906}
   projectilePrefab: {fileID: 1531383792956839967, guid: 8490c1a7de1bca54ca420907720a03cd, type: 3}
   predictionTime: 1
---- !u!114 &-50666777863427357
+--- !u!114 &7828921738925912506
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -266,11 +266,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 7043881295015415257}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2c2c8d3d6939d94dadc1b2de3cb5b6a, type: 3}
+  m_Script: {fileID: 11500000, guid: bcd0058fe49dcb246a6e45ebbea71f71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
+  CurrentHP:
+    m_InternalValue: 100
 --- !u!1 &8540772427861201465
 GameObject:
   m_ObjectHideFlags: 0
@@ -280,7 +281,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2852416105238808906}
-  m_Layer: 3
+  m_Layer: 0
   m_Name: ProjectileSpawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}

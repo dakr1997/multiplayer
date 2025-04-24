@@ -121,7 +121,11 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   magnetSpeed: 5
   pickupRadius: 0.1
+  magnetRadius: 5
   expAmount: 10
+  hudCanvasTransform: {fileID: 0}
+  floatingTextPrefab: {fileID: 0}
+  textOffset: {x: 0, y: 1, z: 0}
 --- !u!212 &5245838830409579048
 SpriteRenderer:
   m_ObjectHideFlags: 0

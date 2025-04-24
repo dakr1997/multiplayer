@@ -300,37 +300,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!1 &4042084702977724458
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2398776820574334}
-  m_Layer: 0
-  m_Name: Floating_Text
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2398776820574334
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4042084702977724458}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 98.77176, y: 71.8, z: -1.7379475}
-  m_LocalScale: {x: 1.6666665, y: 1.6666665, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4643730043310809401}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4057729096889858456
 GameObject:
   m_ObjectHideFlags: 0
@@ -605,7 +574,6 @@ RectTransform:
   - {fileID: 5222340335593371719}
   - {fileID: 3175355353245299201}
   - {fileID: 1021307049970774949}
-  - {fileID: 2398776820574334}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -629,10 +597,8 @@ MonoBehaviour:
   expBar: {fileID: 3888734448139116321}
   levelText: {fileID: 2847356464158735201}
   towerHealthBar: {fileID: 5509715948325053345}
-  floatingTextRoot: {fileID: 2398776820574334}
-  floatingTextPrefab: {fileID: 7621956709055777272, guid: 00d4415626c7a0848b1bedfaa1fecabf, type: 3}
+  floatingTextRoot: {fileID: 649391988056233898, guid: 00d4415626c7a0848b1bedfaa1fecabf, type: 3}
   floatingTextOffset: {x: 0, y: 50, z: 0}
-  initialPoolSize: 5
 --- !u!1 &5287188911199828223
 GameObject:
   m_ObjectHideFlags: 0

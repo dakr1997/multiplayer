@@ -76,38 +76,6 @@ public class XPManager : NetworkBehaviour
             Debug.LogError("[XPManager] TowerHealth component missing on player object!");
         }
     }
-    [ServerRpc(RequireOwnership = false)]
-    public void RequestTowerHpUpdateServerRpc(int amount)
-    {
-        // Make sure this runs only on the server
-        if (!IsServer) return;
-
-        // Log the action on the server
-        Debug.Log($"[Server] Updating Tower HP to {amount}");
-
-        // Update the tower HP on the server side (if needed)
-        UpdateTowerHP(amount);
-
-        // Notify all clients to update their HUD (via ClientRpc)
-        NotifyClientsOfTowerHPChangeClientRpc(amount);
-    }
-
-    private void UpdateTowerHP(int newAmount)
-    {
-        if (!IsServer) return;
-
-
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
-        {
-            var towerHealth = client.PlayerObject?.GetComponent<TowerHealth>();
-            if (towerHealth != null)
-            {
-                towerHealth.SetHP(newAmount);
-            }
-        }
-        Debug.Log($"[Server] Tower HP updated to {newAmount}");
-        
-    }
 
     [ServerRpc(RequireOwnership = false)]
     private void GrantXPServerRpc(ulong playerId, int amount)

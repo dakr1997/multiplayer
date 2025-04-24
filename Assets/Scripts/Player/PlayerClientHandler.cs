@@ -37,14 +37,16 @@ public class PlayerClientHandler : NetworkBehaviour
         }
         if (Input.GetKeyDown(KeyCode.H)) // Press "H" to test damage
         {
-            if (HPManager.Instance != null)
+            var mainTower = MainTowerHP.Instance; // Or find it another way
+            
+            if (mainTower != null)
             {
-                Debug.Log($"[XP TEST] Player {OwnerClientId} requesting 50 HP");
-                HPManager.Instance.RequestTowerHpUpdateServerRpc(50); // Give 50 XP to self
+                Debug.Log($"[HP TEST] Player {OwnerClientId} requesting 50 HP");
+                mainTower.RequestSetHPServerRpc(50);
             }
             else
             {
-                Debug.LogError("[XP TEST] XPManager instance not found!");
+                Debug.LogError("[HP TEST] Main tower not found!");
             }
         }
     }
@@ -67,7 +69,7 @@ public class PlayerClientHandler : NetworkBehaviour
         hudController.Initialize(
             player.HealthComponent,
             player.ExperienceComponent,
-            player.TowerHealthComponent
+            MainTowerHP.Instance // Assuming MainTowerHP is a singleton or accessible instance
         );
     }
 
