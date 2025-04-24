@@ -5,63 +5,138 @@ public class XPManager : NetworkBehaviour
 {
     public static XPManager Instance { get; private set; }
 
+    [SerializeField] private GameObject expBubblePrefab;
+
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    public void GrantXPServerRpc(ulong playerId, int amount)
-    {
-        if (!IsServer) return;
+    //[Events]
+    private void OnEnable() => EnemyAI.OnEnemyDied += HandleEnemyDeath;
+    private void OnDisable() => EnemyAI.OnEnemyDied -= HandleEnemyDeath;
 
-        var player = NetworkManager.SpawnManager.GetPlayerNetworkObject(playerId);
-        if (player != null && player.TryGetComponent<PlayerExperience>(out var xp))
+
+
+
+    public void AwardXP(ulong playerId, int amount)
+    {
+        if (!IsServer)
         {
-            xp.AddXP(amount);
+            Debug.Log($"[Client] Requesting XP award for player {playerId}");
+            GrantXPServerRpc(playerId, amount);
+            return;
         }
-    }
-    [ServerRpc(RequireOwnership = false)]    
-    public void GrantXPToAllPlayersServerRpc(int amount)
-    {
-        if (!IsServer) return;
 
-        foreach (var clientPair in NetworkManager.Singleton.ConnectedClients)
+        Debug.Log($"[Server] Awarding {amount} XP to player {playerId}");
+
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(playerId, out var client))
         {
-            var playerObject = clientPair.Value.PlayerObject;
-            if (playerObject != null && playerObject.TryGetComponent<PlayerExperience>(out var xp))
+            var exp = client.PlayerObject?.GetComponent<PlayerExperience>();
+            if (exp != null)
             {
-                xp.AddXP(amount);
+                exp.AddXP(amount);
             }
-        }
-
-        Debug.Log($"[XPManager] Granted {amount} XP to all players.");
-    }
-
-    public void AwardXP(ulong collectorId, int amount)
-    {
-        if (IsServer)
-        {
-            // Direct call if already on server
-            GrantXPServerRpc(collectorId, amount);
+            else
+            {
+                Debug.LogWarning($"[Server] Player {playerId} missing PlayerExperience component.");
+            }
         }
         else
         {
-            // Client request to server
-            GrantXPServerRpc(collectorId, amount);
+            Debug.LogWarning($"[Server] No connected client found with ID {playerId}");
         }
     }
 
     public void AwardXPToAll(int amount)
     {
-        if (IsServer)
+
+        if (!IsServer)
         {
-            GrantXPToAllPlayersServerRpc(amount); // Direct if server
+            Debug.Log($"[Client] Requesting XP award for all players");
+            GrantXPToAllPlayersServerRpc(amount);
+            return;
+        }
+
+        Debug.Log($"[Server] Awarding {amount} XP to all players");
+
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            var exp = client.PlayerObject?.GetComponent<PlayerExperience>();
+            if (exp != null)
+            {
+                exp.AddXP(amount);
+            }
+        }
+
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void GrantXPServerRpc(ulong playerId, int amount)
+    {
+        if (!IsServer) return;
+
+        Debug.Log($"[ServerRPC] Granting {amount} XP to player {playerId}");
+
+        var player = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(playerId);
+        if (player != null)
+        {
+            var xp = player.GetComponent<PlayerExperience>();
+            if (xp != null)
+            {
+                xp.AddXP(amount);
+                return;
+            }
+        }
+
+        Debug.LogError($"[ServerRPC] Failed to award XP to player {playerId}");
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void GrantXPToAllPlayersServerRpc(int amount)
+    {
+        if (!IsServer) return;
+
+        Debug.Log($"[ServerRPC] Granting {amount} XP to all players");
+
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            var xp = client.PlayerObject?.GetComponent<PlayerExperience>();
+            if (xp != null)
+            {
+                xp.AddXP(amount);
+            }
+        }
+    }
+
+    private void HandleEnemyDeath(EnemyAI enemy)
+    {
+        if (!IsServer || enemy == null) return;
+
+        var bubbleObj = Instantiate(expBubblePrefab, enemy.transform.position, Quaternion.identity);
+        var bubble = bubbleObj.GetComponent<ExpBubble>();
+
+        if (bubble != null)
+        {
+            bubble.expAmount = 10;
+
+            if (bubbleObj.TryGetComponent(out NetworkObject netObj))
+            {
+                netObj.Spawn();
+            }
+            else
+            {
+                Debug.LogError("[Server] ExpBubble is missing NetworkObject!");
+                Destroy(bubbleObj);
+            }
         }
         else
         {
-            GrantXPToAllPlayersServerRpc(amount); // Request if client
+            Debug.LogError("[Server] ExpBubble prefab missing ExpBubble component!");
+            Destroy(bubbleObj);
         }
     }
 }

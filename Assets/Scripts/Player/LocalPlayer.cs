@@ -106,7 +106,8 @@ public class LocalPlayer : NetworkBehaviour
             // Updated to use the new XPManager system
             if (XPManager.Instance != null)
             {
-                XPManager.Instance.AwardXP(NetworkManager.LocalClientId, (int)debugExpAmount);
+                //XPManager.Instance.AwardXP(NetworkManager.LocalClientId, (int)debugExpAmount);
+                XPManager.Instance.AwardXPToAll((int)debugExpAmount);
             }
             else
             {

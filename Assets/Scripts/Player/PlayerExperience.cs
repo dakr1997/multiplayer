@@ -28,19 +28,23 @@ public class PlayerExperience : NetworkBehaviour
     {
         currentEXP.OnValueChanged += HandleExpChanged;
         currentLevel.OnValueChanged += HandleLevelChanged;
-        UpdateExp();
-    }
 
-    public override void OnNetworkDespawn()
-    {
-        currentEXP.OnValueChanged -= HandleExpChanged;
-        currentLevel.OnValueChanged -= HandleLevelChanged;
+        if (IsServer)
+        {
+            // Server logs only, no need to update UI
+            Debug.Log($"Player XP initialized for client {OwnerClientId}");
+        }
     }
 
     public void AddXP(int amount)
     {
-        if (!IsServer) return;
+        if (!IsServer) 
+        {
+            Debug.LogWarning($"Client {OwnerClientId} tried to add XP directly!");
+            return;
+        }
         
+        Debug.Log($"Adding {amount} XP to player {OwnerClientId}");
         currentEXP.Value += amount;
         
         if (currentEXP.Value >= expToNextLevel)
@@ -54,21 +58,23 @@ public class PlayerExperience : NetworkBehaviour
         currentEXP.Value -= expToNextLevel;
         expToNextLevel *= levelUpMultiplier;
         currentLevel.Value++;
+        Debug.Log($"Player {OwnerClientId} leveled up to {currentLevel.Value}!");
     }
 
     private void HandleExpChanged(float oldVal, float newVal)
     {
+        Debug.Log($"XP changed from {oldVal} to {newVal} for client {OwnerClientId}");
         UpdateExp();
     }
 
     private void HandleLevelChanged(int oldVal, int newVal)
     {
+        Debug.Log($"Level changed from {oldVal} to {newVal} for client {OwnerClientId}");
         UpdateExp();
     }
 
     private void UpdateExp()
     {
         OnExpChanged?.Invoke(currentEXP.Value, expToNextLevel, currentLevel.Value);
-        Debug.Log($"EXP Updated - Client {OwnerClientId}: {currentEXP.Value}/{expToNextLevel} LVL:{currentLevel.Value}");
     }
 }

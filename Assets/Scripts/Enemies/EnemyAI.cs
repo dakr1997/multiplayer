@@ -25,9 +25,6 @@ public class EnemyAI : NetworkBehaviour, IDamageable
     public static event System.Action<EnemyAI> OnEnemySpawned;
     public static event System.Action<EnemyAI> OnEnemyDied;
 
-    [Header("EXP Bubble Settings")]
-    public GameObject expBubblePrefab; // Reference to the EXP bubble prefab
-
     private void Start()
     {
         OnEnemySpawned?.Invoke(this);
@@ -61,21 +58,16 @@ public class EnemyAI : NetworkBehaviour, IDamageable
     {
         Debug.Log($"{gameObject.name} has died.");
 
-        // Drop an EXP bubble when the enemy dies
-        if (expBubblePrefab != null && IsServer)
+        if (IsServer)
         {
-            // Spawn the EXP bubble on the server side
-            GameObject expBubble = Instantiate(expBubblePrefab, transform.position, Quaternion.identity);
-            NetworkObject netObj = expBubble.GetComponent<NetworkObject>();
-            if (netObj != null)
-            {
-                netObj.Spawn(); // Spawn the bubble on the network
-            }
+            OnEnemyDied?.Invoke(this);
         }
 
-        // Despawn the enemy from the network
         GetComponent<NetworkObject>().Despawn();
-    }
+
+            // Despawn the enemy from the network
+            GetComponent<NetworkObject>().Despawn();
+        }
 
     private void FindTargets()
     {

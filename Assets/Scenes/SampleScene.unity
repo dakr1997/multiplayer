@@ -922,6 +922,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  expBubblePrefab: {fileID: 4679411115189954909, guid: 9cb9025d9ff3be84c814ba4aba3b58af, type: 3}
 --- !u!1 &1581638599
 GameObject:
   m_ObjectHideFlags: 0

@@ -11,54 +11,58 @@ public class ExpBubble : NetworkBehaviour
 
     private Transform targetPlayer;
     private bool isCollected = false;
-    private NetworkObject netObj;
-
-    private void Start()
-    {
-        netObj = GetComponent<NetworkObject>();
-    }
 
     private void Update()
     {
         if (isCollected || !IsServer) return;
 
-        targetPlayer ??= FindClosestPlayer();
-
-        if (targetPlayer != null)
+        if (targetPlayer == null)
         {
-            float distance = Vector3.Distance(transform.position, targetPlayer.position);
+            FindNearestPlayer();
+            return;
+        }
 
-            // Magnetic attraction
-            if (distance <= magnetRadius)
-            {
-                float strength = 1 - (distance / magnetRadius);
-                transform.position += (targetPlayer.position - transform.position).normalized * 
-                                    (magnetSpeed * strength * Time.deltaTime);
-            }
+        float distance = Vector3.Distance(transform.position, targetPlayer.position);
 
-            // Collection check
-            if (distance < pickupRadius)
-            {
-                CollectBubble();
-            }
+        if (distance <= magnetRadius)
+        {
+            float strength = 1 - (distance / magnetRadius);
+            transform.position = Vector3.MoveTowards(
+                transform.position, 
+                targetPlayer.position, 
+                magnetSpeed * strength * Time.deltaTime
+            );
+        }
+
+        if (distance <= pickupRadius)
+        {
+            CollectBubble();
         }
     }
 
-    private Transform FindClosestPlayer()
+    private void FindNearestPlayer()
     {
-        Transform closest = null;
         float closestDistance = float.MaxValue;
-
-        foreach (var player in GameObject.FindGameObjectsWithTag("Player"))
+        targetPlayer = null;
+        Debug.Log($"ConnectedClients: {NetworkManager.Singleton.ConnectedClientsList.Count}");
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList) {
+        Debug.Log($"Client {client.ClientId} has PlayerObject: {client.PlayerObject != null}");
+}
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
-            float distance = Vector3.Distance(transform.position, player.transform.position);
-            if (distance < closestDistance)
+            if (client.PlayerObject != null)
             {
-                closestDistance = distance;
-                closest = player.transform;
+                float distance = Vector3.Distance(
+                    transform.position, 
+                    client.PlayerObject.transform.position
+                );
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    targetPlayer = client.PlayerObject.transform;
+                }
             }
         }
-        return closest;
     }
 
     private void CollectBubble()
@@ -66,8 +70,22 @@ public class ExpBubble : NetworkBehaviour
         if (!IsServer || isCollected) return;
         
         isCollected = true;
+        
+        // Get the collector's client ID
         ulong collectorId = targetPlayer.GetComponent<NetworkObject>().OwnerClientId;
+        Debug.Log($"[SERVER] Bubble collected by player {collectorId}");
+        
+        // Award XP only to the collecting player
         XPManager.Instance.AwardXPToAll(expAmount);
-        netObj.Despawn();
+        
+        // Despawn the bubble
+        if (TryGetComponent<NetworkObject>(out var netObj) && netObj.IsSpawned)
+        {
+            netObj.Despawn();
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 }
