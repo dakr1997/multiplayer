@@ -6,92 +6,56 @@ public class Tower : NetworkBehaviour
     [Header("Tower Settings")]
     public float TowerRange = 5f;
     public float fireRate = 1f;
-    public float TowerDamage = 10;
-    private float lastFireTime;
-    public Transform TowerShootingPoint;
-    public GameObject projectilePrefab;
-    private Aim aimSystem;
+    public float TowerDamage = 10f;
 
+    private float fireCooldown = 0f;
+    public Transform TowerShootingPoint;
+    [SerializeField] private ProjectileSpawner projectileSpawner;
+    private Aim aimSystem;
     public float predictionTime = 1f;
     private GameObject currentTarget;
 
-    // Health
     private HealthComponent health;
     private bool isDead = false;
 
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
-
         InitializeTower();
     }
 
     public void InitializeTower()
     {
-        lastFireTime = Time.time;
+        fireCooldown = 0f;
         aimSystem = new Aim();
 
-        health = GetComponent<HealthComponent>();
-        if (health != null)
+        if (projectileSpawner == null)
         {
-            health.OnDied += HandleTowerDeath;
+            Debug.LogError("ProjectileSpawner reference missing!");
+            return;
         }
-        else
-        {
-            Debug.LogError("HealthComponent missing from Tower!");
-        }
-    }
 
-    private void OnDestroy()
-    {
-        if (health != null)
-        {
-            health.OnDied -= HandleTowerDeath;
-        }
+        projectileSpawner.TowerDamage = TowerDamage;
+        projectileSpawner.TowerShootingPoint = TowerShootingPoint;
     }
 
     private void Update()
     {
         if (!IsServer || isDead) return;
 
+        fireCooldown += Time.deltaTime;
         UpdateTargets();
 
-        if (Time.time - lastFireTime >= 1f / fireRate)
+        if (fireCooldown >= 1f / fireRate)
         {
             Fire();
-            lastFireTime = Time.time;
+            fireCooldown = 0f;
         }
-    }
-
-    private GameObject FindClosestEnemy()
-    {
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        if (enemies == null || enemies.Length == 0)
-        {
-            return null;
-        }
-
-        GameObject closestEnemy = null;
-        float closestDistance = Mathf.Infinity;
-
-        foreach (GameObject enemy in enemies)
-        {
-            float distance = Vector3.Distance(transform.position, enemy.transform.position);
-            if (distance < TowerRange && distance < closestDistance)
-            {
-                closestDistance = distance;
-                closestEnemy = enemy;
-            }
-        }
-
-        return closestEnemy;
     }
 
     private void UpdateTargets()
     {
-        if (currentTarget == null || 
-            !currentTarget.activeInHierarchy || 
-            Vector3.Distance(transform.position, currentTarget.transform.position) > TowerRange)
+        if (currentTarget == null || !currentTarget.activeInHierarchy || Vector3.Distance(transform.position, currentTarget.transform.position) > TowerRange)
         {
             currentTarget = FindClosestEnemy();
             aimSystem = new Aim();
@@ -101,84 +65,66 @@ public class Tower : NetworkBehaviour
         }
     }
 
-    private void Fire()
+    private GameObject FindClosestEnemy()
     {
-        if (TowerShootingPoint == null || projectilePrefab == null)
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        GameObject closest = null;
+        float closestDist = Mathf.Infinity;
+
+        foreach (GameObject enemy in enemies)
         {
-            Debug.LogError("Assign TowerShootingPoint and projectilePrefab in the Inspector!");
-            return;
+            float dist = Vector3.Distance(transform.position, enemy.transform.position);
+            if (dist < TowerRange && dist < closestDist)
+            {
+                closest = enemy;
+                closestDist = dist;
+            }
         }
 
-        if (currentTarget == null) return;
-
-        Vector3? predictedPosition = aimSystem.PredictTargetPosition(currentTarget.transform, predictionTime);
-        if (predictedPosition == null) return;
-
-        Vector3 direction = (predictedPosition.Value - TowerShootingPoint.position).normalized;
-        TowerShootingPoint.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
-
-        SpawnProjectile(direction);
+        return closest;
     }
 
-    private void SpawnProjectile(Vector3 direction)
+    private void Fire()
     {
-        GameObject projectile = Instantiate(projectilePrefab, TowerShootingPoint.position, TowerShootingPoint.rotation);
-        
-        NetworkObject netObj = projectile.GetComponent<NetworkObject>();
-        if (netObj == null)
+        if (TowerShootingPoint == null || projectileSpawner == null || currentTarget == null)
         {
-            Debug.LogError("Missing NetworkObject on projectile prefab!");
-            Destroy(projectile);
             return;
         }
 
-        netObj.Spawn(true);
+        Vector3? predictedPos = aimSystem.PredictTargetPosition(currentTarget.transform, predictionTime);
+        if (predictedPos == null) return;
 
-        if (projectile.TryGetComponent<Projectile>(out Projectile projectileScript))
-        {
-            projectileScript.Initialize(direction, TowerDamage, "Tower");
-        }
-        else
-        {
-            Debug.LogError("Projectile script missing on prefab!");
-        }
+        Vector3 direction = (predictedPos.Value - TowerShootingPoint.position).normalized;
+        TowerShootingPoint.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+
+        projectileSpawner.SpawnProjectile(direction);
     }
 
     private void HandleTowerDeath()
     {
         if (!IsServer || isDead) return;
-        
+
         isDead = true;
-        Debug.Log($"Destroying tower {gameObject.name}");
-        
-        // Disable components immediately
         GetComponent<Collider2D>().enabled = false;
         enabled = false;
 
-        // Play death effects
         PlayDeathEffectsClientRpc();
 
         if (IsSceneObject())
         {
-            // Handle static scene object destruction
             gameObject.SetActive(false);
             SetTowerActiveClientRpc(false);
             Destroy(gameObject, 1f);
         }
         else
         {
-            // Handle spawned prefab destruction
             GetComponent<NetworkObject>().Despawn(true);
             Destroy(gameObject, 1f);
         }
     }
 
     [ClientRpc]
-    private void PlayDeathEffectsClientRpc()
-    {
-        // Play visual/sound effects here
-        // This runs on all clients
-    }
+    private void PlayDeathEffectsClientRpc() { }
 
     [ClientRpc]
     private void SetTowerActiveClientRpc(bool active)

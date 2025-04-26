@@ -1,46 +1,54 @@
 using UnityEngine;
 using Unity.Netcode;
-using System.Collections; // For IEnumerator
+using UnityEngine.Pool;
+using System.Collections;
 
-public class Projectile : NetworkBehaviour // Inherit from NetworkBehaviour
+public class Projectile : NetworkBehaviour
 {
     public float speed = 10f;
-    public float maxRadius = 10f; // Max distance before despawn
-
-    private Vector3 startPos;      // Starting position of the projectile
-    private Vector3 direction;     // Direction of the projectile
-    private float damage;          // Damage to be dealt
-    private string source;         // Source of the projectile
-
+    public float maxRadius = 10f;
+    
+    private Vector3 startPos;
+    private Vector3 direction;
+    private float damage;
+    private string source;
+    
+    // Reference to the object pool that manages this projectile
+    private IObjectPool<Projectile> objectPool;
+    
+    // Public property to set the object pool reference
+    public IObjectPool<Projectile> ObjectPool { set => objectPool = value; }
 
     public void Initialize(Vector3 direction, float damage, string source)
     {
         SetDirection(direction);
         SetDamage(damage);
         SetSource(source);
+        startPos = transform.position; // Reset start position when reused
     }
+
     public void SetSource(string src)
     {
         source = src;
     }
 
-    void Start()
+    public override void OnNetworkSpawn()
     {
-        startPos = transform.position; // Record starting position
-                // Get the player's collider
-        Collider2D playerCollider = GameObject.FindGameObjectWithTag("Player").GetComponent<Collider2D>();
+        base.OnNetworkSpawn();
         
-        // Ignore the collision between the player's collider and this arrow's collider
-        Physics2D.IgnoreCollision(GetComponent<Collider2D>(), playerCollider);
+        if (IsServer)
+        {
+            // Get the player's collider (only on server)
+            Collider2D playerCollider = GameObject.FindGameObjectWithTag("Player").GetComponent<Collider2D>();
+            Physics2D.IgnoreCollision(GetComponent<Collider2D>(), playerCollider);
+        }
     }
 
-    // Set the projectile's direction
     public void SetDirection(Vector3 dir)
     {
         direction = dir.normalized;
     }
 
-    // Set the damage the projectile will deal
     public void SetDamage(float dmg)
     {
         damage = dmg;
@@ -48,59 +56,64 @@ public class Projectile : NetworkBehaviour // Inherit from NetworkBehaviour
 
     void Update()
     {
-        if (!IsServer) return; // Only process on the server
+        if (!IsServer) return;
 
-        // Move the projectile in the given direction
         transform.Translate(direction * speed * Time.deltaTime, Space.World);
 
-        // Check if the projectile has traveled beyond its allowed radius
         if (Vector3.Distance(transform.position, startPos) > maxRadius)
         {
-            StartCoroutine(DelayedDespawn(0.2f));  // Start the coroutine to despawn after a short delay
+            StartCoroutine(DelayedRelease(0.2f));
         }
     }
 
-    // Trigger detection for collision with enemies
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (!IsServer) return; // Ensure this is handled on the server
+        if (!IsServer) return;
 
         if (other.CompareTag("Enemy"))
         {
             DamageHelper.ApplyDamage(other.gameObject, damage, "Projectile");
-            StartCoroutine(DelayedDespawn(0.2f));  // Despawn after a small delay when hitting an enemy
+            StartCoroutine(DelayedRelease(0.2f));
         }
     }
 
-    // Coroutine that delays the despawn for visual sync
-    private IEnumerator DelayedDespawn(float delay)
+    private IEnumerator DelayedRelease(float delay)
     {
-        // Wait for the given delay time before despawning the projectile
         yield return new WaitForSeconds(delay);
 
-        // Check if we're on the server and if the NetworkObject is spawned
         if (IsServer && NetworkObject.IsSpawned)
         {
-            // Log for debugging
-            Debug.Log("Despawning projectile after delay");
-
-            // Now safely despawn the projectile
-            NetworkObject.Despawn();
-        }
-        else
-        {
-            Debug.LogWarning("[Projectile] Tried to despawn, but it wasn't spawned or not on the server.");
+            if (objectPool != null)
+            {
+                NetworkObject.Despawn(false);
+                // The actual return to pool happens in OnNetworkDespawn
+            }
+            else
+            {
+                // Fallback if pool isn't available
+                NetworkObject.Despawn();
+                Destroy(gameObject);
+            }
         }
     }
 
+    public override void OnNetworkDespawn()
+    {
+        if (objectPool != null)
+        {
+            // Return to pool only if this was a pooled object
+            objectPool.Release(this);
+        }
+        
+        base.OnNetworkDespawn();
+    }
 
-    // Optional: Call this when the projectile is off-screen
     void OnBecameInvisible()
     {
-        if (!IsServer) return; // Only run on the server
+        if (!IsServer) return;
         if (gameObject.activeInHierarchy)
         {
-            StartCoroutine(DelayedDespawn(0.2f));
+            StartCoroutine(DelayedRelease(0.2f));
         }
     }
 }

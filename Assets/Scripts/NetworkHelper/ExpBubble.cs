@@ -40,6 +40,13 @@ public class ExpBubble : NetworkBehaviour
         }
     }
 
+
+    public void ResetBubble()
+    {
+        isCollected = false;
+        targetPlayer = null;
+    }
+
     private void FindNearestPlayer()
     {
         float closestDistance = float.MaxValue;
@@ -65,27 +72,29 @@ public class ExpBubble : NetworkBehaviour
         }
     }
 
-    private void CollectBubble()
+     private void CollectBubble()
     {
         if (!IsServer || isCollected) return;
         
         isCollected = true;
-        
-        // Get the collector's client ID
         ulong collectorId = targetPlayer.GetComponent<NetworkObject>().OwnerClientId;
-        Debug.Log($"[SERVER] Bubble collected by player {collectorId}");
         
-        // Award XP to all Players
         XPManager.Instance.AwardXPToAll(expAmount);
         
-        // Despawn the bubble
-        if (TryGetComponent<NetworkObject>(out var netObj) && netObj.IsSpawned)
+        // Return to pool instead of destroying
+        ExpBubblePool.Instance.ReturnToPool(this);
+        
+        // Network despawn (optional - only if you need full netcode cleanup)
+        if (TryGetComponent<NetworkObject>(out var netObj))
         {
-            netObj.Despawn();
+            netObj.Despawn(false); // Don't destroy, just hide
         }
-        else
-        {
-            Destroy(gameObject);
-        }
+    }
+
+    // Add this to handle client-side visibility
+    public override void OnNetworkDespawn()
+    {
+        if (IsServer) return;
+        ExpBubblePool.Instance?.ReturnToPool(this);
     }
 }

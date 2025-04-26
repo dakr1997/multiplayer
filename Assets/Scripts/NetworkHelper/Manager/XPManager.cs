@@ -77,6 +77,7 @@ public class XPManager : NetworkBehaviour
         }
     }
 
+
     [ServerRpc(RequireOwnership = false)]
     private void GrantXPServerRpc(ulong playerId, int amount)
     {

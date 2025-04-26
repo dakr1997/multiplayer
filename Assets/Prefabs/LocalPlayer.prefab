@@ -48,12 +48,12 @@ GameObject:
   - component: {fileID: 6341009488174301840}
   - component: {fileID: 2050900261553466437}
   - component: {fileID: 3214636210248206796}
+  - component: {fileID: -4812642097262015697}
   - component: {fileID: -7040602349829137824}
   - component: {fileID: 1015184763365141646}
   - component: {fileID: 1005090387922136128}
   - component: {fileID: 5198997713752091062}
   - component: {fileID: 1677799336585110302}
-  - component: {fileID: -4812642097262015697}
   m_Layer: 0
   m_Name: LocalPlayer
   m_TagString: Player
@@ -254,6 +254,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+--- !u!114 &-4812642097262015697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892764523323301376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 370820bb6e7fb2b4b86658e85d6c0022, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  damageAmount: 10
+  damageRadius: 5
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!114 &-7040602349829137824
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -402,21 +420,3 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   TransitionStateInfoList: []
   m_Animator: {fileID: 4881445962317876395}
---- !u!114 &-4812642097262015697
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7892764523323301376}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 370820bb6e7fb2b4b86658e85d6c0022, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  damageAmount: 10
-  damageRadius: 5
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 8

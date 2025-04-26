@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 649391988056233898}
   - component: {fileID: 2105159123930189424}
   - component: {fileID: 4633721716649769021}
-  - component: {fileID: 7621956709055777272}
+  - component: {fileID: 5451797625431677993}
+  - component: {fileID: 5848047195637170629}
   m_Layer: 5
   m_Name: Exp+
   m_TagString: Untagged
@@ -75,7 +76,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281586139
+    rgba: 4279226867
   m_fontColor: {r: 0.9528302, g: 0.81818897, b: 0.05842829, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -137,7 +138,7 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!114 &7621956709055777272
+--- !u!114 &5451797625431677993
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -146,8 +147,36 @@ MonoBehaviour:
   m_GameObject: {fileID: 356130796588407086}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 64cebb65f27e95f4d830461778e7850a, type: 3}
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 50
-  fadeDuration: 1
+  GlobalObjectIdHash: 0
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &5848047195637170629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 356130796588407086}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40cda9ae0c6cfa4d9566d1f78fed91f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  magnetSpeed: 5
+  pickupRadius: 1.5
+  magnetRadius: 5
+  expAmount: 10
