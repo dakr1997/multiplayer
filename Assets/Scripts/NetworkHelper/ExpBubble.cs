@@ -1,7 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 
-public class ExpBubble : NetworkBehaviour
+public class ExpBubble : PoolableNetworkObject
 {
     [Header("Settings")]
     public float magnetSpeed = 5f;
@@ -11,6 +11,14 @@ public class ExpBubble : NetworkBehaviour
 
     private Transform targetPlayer;
     private bool isCollected = false;
+
+    public void Initialize(Vector3 position, int expValue)
+    {
+        transform.position = position;
+        expAmount = expValue;
+        isCollected = false;
+        targetPlayer = null;
+    }
 
     private void Update()
     {
@@ -40,21 +48,11 @@ public class ExpBubble : NetworkBehaviour
         }
     }
 
-
-    public void ResetBubble()
-    {
-        isCollected = false;
-        targetPlayer = null;
-    }
-
     private void FindNearestPlayer()
     {
         float closestDistance = float.MaxValue;
         targetPlayer = null;
-        Debug.Log($"ConnectedClients: {NetworkManager.Singleton.ConnectedClientsList.Count}");
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsList) {
-        Debug.Log($"Client {client.ClientId} has PlayerObject: {client.PlayerObject != null}");
-}
+
         foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
             if (client.PlayerObject != null)
@@ -72,29 +70,25 @@ public class ExpBubble : NetworkBehaviour
         }
     }
 
-     private void CollectBubble()
+    private void CollectBubble()
     {
         if (!IsServer || isCollected) return;
         
         isCollected = true;
-        ulong collectorId = targetPlayer.GetComponent<NetworkObject>().OwnerClientId;
         
+        // Award XP
         XPManager.Instance.AwardXPToAll(expAmount);
         
-        // Return to pool instead of destroying
-        ExpBubblePool.Instance.ReturnToPool(this);
-        
-        // Network despawn (optional - only if you need full netcode cleanup)
-        if (TryGetComponent<NetworkObject>(out var netObj))
-        {
-            netObj.Despawn(false); // Don't destroy, just hide
-        }
+        // Return to pool
+        ReturnToPool();
     }
 
-    // Add this to handle client-side visibility
     public override void OnNetworkDespawn()
     {
-        if (IsServer) return;
-        ExpBubblePool.Instance?.ReturnToPool(this);
+        // Reset state when returned to pool
+        isCollected = false;
+        targetPlayer = null;
+        
+        base.OnNetworkDespawn();
     }
 }

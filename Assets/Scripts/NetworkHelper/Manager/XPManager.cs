@@ -5,7 +5,8 @@ public class XPManager : NetworkBehaviour
 {
     public static XPManager Instance { get; private set; }
 
-    [SerializeField] private GameObject expBubblePrefab;
+    [SerializeField] private NetworkObject expBubblePrefab;
+    private NetworkObjectPool poolManager;
 
     private void Awake()
     {
@@ -13,6 +14,12 @@ public class XPManager : NetworkBehaviour
             Instance = this;
         else
             Destroy(gameObject);
+
+        poolManager = FindObjectOfType<NetworkObjectPool>();
+        if (poolManager == null)
+        {
+            Debug.LogError("NetworkObjectPool not found in scene!");
+        }
     }
 
     private void OnEnable() => EnemyAI.OnEnemyDied += HandleEnemyDeath;
@@ -68,16 +75,6 @@ public class XPManager : NetworkBehaviour
         }
     }
 
-    // ClientRpc to notify clients about tower HP change
-    [ClientRpc]
-    private void NotifyClientsOfTowerHPChangeClientRpc(int amount)
-    {
-        {
-            Debug.LogError("[XPManager] TowerHealth component missing on player object!");
-        }
-    }
-
-
     [ServerRpc(RequireOwnership = false)]
     private void GrantXPServerRpc(ulong playerId, int amount)
     {
@@ -120,27 +117,30 @@ public class XPManager : NetworkBehaviour
     {
         if (!IsServer || enemy == null) return;
 
-        var bubbleObj = Instantiate(expBubblePrefab, enemy.transform.position, Quaternion.identity);
-        var bubble = bubbleObj.GetComponent<ExpBubble>();
-
-        if (bubble != null)
+        // Get bubble from pool
+        NetworkObject bubbleNetObj = poolManager.Get(expBubblePrefab);
+        if (bubbleNetObj == null)
         {
-            bubble.expAmount = 10;
-
-            if (bubbleObj.TryGetComponent(out NetworkObject netObj))
-            {
-                netObj.Spawn();
-            }
-            else
-            {
-                Debug.LogError("[Server] ExpBubble is missing NetworkObject!");
-                Destroy(bubbleObj);
-            }
+            Debug.LogError("Failed to get ExpBubble from pool!");
+            return;
         }
-        else
+
+        ExpBubble bubble = bubbleNetObj.GetComponent<ExpBubble>();
+        if (bubble == null)
         {
-            Debug.LogError("[Server] ExpBubble prefab missing ExpBubble component!");
-            Destroy(bubbleObj);
+            Debug.LogError("ExpBubble component missing on prefab!");
+            poolManager.Release(expBubblePrefab, bubbleNetObj);
+            return;
+        }
+
+        // Initialize and position
+        bubble.transform.position = enemy.transform.position;
+        bubble.Initialize(enemy.transform.position, 10); // Default 10 XP
+
+        // Spawn on network if needed
+        if (!bubbleNetObj.IsSpawned)
+        {
+            bubbleNetObj.Spawn(true);
         }
     }
 }
