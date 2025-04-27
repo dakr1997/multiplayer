@@ -3,6 +3,7 @@ using Unity.Netcode;
 using UnityEngine.Pool;
 using System.Collections.Generic;
 using System.Collections;
+using System.Threading.Tasks;
 public abstract class PoolableNetworkObject : NetworkBehaviour
 {
     private NetworkObjectPool pool;
@@ -24,21 +25,22 @@ public abstract class PoolableNetworkObject : NetworkBehaviour
         base.OnNetworkDespawn();
     }
 
-    protected void ReturnToPool(float delay = 0f)
+    protected async void ReturnToPool(float delay = 0f)
     {
-        if (delay <= 0f)
+        if (delay > 0f)
         {
-            NetworkObject.Despawn();
+            await Task.Delay((int)(delay * 1000)); // delay expects milliseconds
         }
-        else
+
+        if (NetworkObject != null && NetworkObject.IsSpawned)
         {
-            StartCoroutine(DelayedDespawn(delay));
+            NetworkObject.Despawn(false);
         }
     }
 
     private IEnumerator DelayedDespawn(float delay)
     {
         yield return new WaitForSeconds(delay);
-        NetworkObject.Despawn();
+        NetworkObject.Despawn(false);
     }
 }

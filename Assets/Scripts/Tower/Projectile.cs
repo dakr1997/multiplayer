@@ -1,17 +1,18 @@
 using UnityEngine;
 using Unity.Netcode;
-using UnityEngine.Pool;
-using System.Collections;
 
 public class Projectile : PoolableNetworkObject
 {
+    [Header("Projectile Settings")]
     public float speed = 10f;
     public float maxRadius = 10f;
+    public LayerMask collisionLayers;
     
     private Vector3 startPos;
     private Vector3 direction;
     private float damage;
     private string source;
+    private Collider2D projectileCollider;
 
     public void Initialize(Vector3 direction, float damage, string source)
     {
@@ -19,6 +20,14 @@ public class Projectile : PoolableNetworkObject
         this.damage = damage;
         this.source = source;
         startPos = transform.position;
+        
+        // Reset any potential velocity if using rigidbody
+        var rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -27,8 +36,12 @@ public class Projectile : PoolableNetworkObject
         
         if (IsServer)
         {
+            projectileCollider = GetComponent<Collider2D>();
             var playerCollider = GameObject.FindGameObjectWithTag("Player").GetComponent<Collider2D>();
-            Physics2D.IgnoreCollision(GetComponent<Collider2D>(), playerCollider);
+            if (playerCollider != null && projectileCollider != null)
+            {
+                Physics2D.IgnoreCollision(projectileCollider, playerCollider);
+            }
         }
     }
 
@@ -48,16 +61,10 @@ public class Projectile : PoolableNetworkObject
     {
         if (!IsServer) return;
 
-        if (other.CompareTag("Enemy"))
+        if (((1 << other.gameObject.layer) & collisionLayers) != 0)
         {
-            DamageHelper.ApplyDamage(other.gameObject, damage, "Projectile");
+            DamageHelper.ApplyDamage(other.gameObject, damage, source);
             ReturnToPool(0.2f);
         }
-    }
-
-    void OnBecameInvisible()
-    {
-        if (!IsServer) return;
-        ReturnToPool(0.2f);
     }
 }

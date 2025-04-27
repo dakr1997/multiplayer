@@ -131,6 +131,9 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 10
   maxRadius: 10
+  collisionLayers:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!58 &3597535118586702980
 CircleCollider2D:
   m_ObjectHideFlags: 0

@@ -905,6 +905,7 @@ GameObject:
   - component: {fileID: 759274651}
   - component: {fileID: 759274653}
   - component: {fileID: 759274654}
+  - component: {fileID: 759274655}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -982,6 +983,23 @@ MonoBehaviour:
   expBubblePrefab: {fileID: 8686120953605589563, guid: 9cb9025d9ff3be84c814ba4aba3b58af, type: 3}
   poolParent: {fileID: 759274652}
   initialPoolSize: 10
+--- !u!114 &759274655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 759274650}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37a59216da750ba47a3041339b56ba06, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  poolConfigs:
+  - prefab: {fileID: -458936415973220558, guid: 8490c1a7de1bca54ca420907720a03cd, type: 3}
+    defaultCapacity: 5
+    maxSize: 50
 --- !u!1 &2105206422
 GameObject:
   m_ObjectHideFlags: 0
