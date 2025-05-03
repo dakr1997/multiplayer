@@ -39,11 +39,8 @@ public class PlayerHUDController : MonoBehaviour
         if (tower != null)
         {
             // Listen directly to NetworkVariable changes
-            tower.CurrentHP.OnValueChanged += (oldVal, newVal) => 
-            UpdateTowerHealth(newVal, MainTowerHP.MaxHP);
-            
-            // Initial update
-            UpdateTowerHealth(tower.CurrentHP.Value, MainTowerHP.MaxHP);
+            tower.OnHealthChanged += (current, max) => UpdateTowerHealth(current, max);
+            UpdateTowerHealth(tower.CurrentHealth, tower.MaxHealth);
         }
     }
 

@@ -16,45 +16,71 @@ public class NetworkObjectPool : NetworkBehaviour
     }
 
     [SerializeField] private PoolConfig[] poolConfigs;
-    private Dictionary<NetworkObject, IObjectPool<NetworkObject>> pools;
+    private Dictionary<NetworkObject, ObjectPool<NetworkObject>> pools;
 
-    // === Stats Tracking ===
+    // Stats tracking
     private int takenFromPool = 0;
     private int returnedToPool = 0;
-    private int spawnedAfterWarmup = 0;
-    private bool isPrewarming = false;
+
+    // Singleton pattern
+    public static NetworkObjectPool Instance { get; private set; }
 
     private void Awake()
     {
-        pools = new Dictionary<NetworkObject, IObjectPool<NetworkObject>>();
+        // Singleton setup
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
+
+        InitializePools();
+    }
+
+    private void InitializePools()
+    {
+        pools = new Dictionary<NetworkObject, ObjectPool<NetworkObject>>();
 
         foreach (var config in poolConfigs)
         {
+            if (config.prefab == null)
+            {
+                Debug.LogError("Null prefab in pool config!");
+                continue;
+            }
+
             var pool = new ObjectPool<NetworkObject>(
-                () => CreatePooledObject(config.prefab),
-                OnTakeFromPool,
-                OnReturnedToPool,
-                OnDestroyPoolObject,
-                true,
-                config.defaultCapacity,
-                config.maxSize
+                createFunc: () => CreatePooledObject(config.prefab),
+                actionOnGet: OnTakeFromPool,
+                actionOnRelease: OnReturnedToPool,
+                actionOnDestroy: OnDestroyPoolObject,
+                collectionCheck: true,
+                defaultCapacity: config.defaultCapacity,
+                maxSize: config.maxSize
             );
 
             pools.Add(config.prefab, pool);
+        }
+    }
 
-            // Prewarm the pool
-            if (config.prewarmCount > 0 && IsServer)
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer)
+        {
+            // Prewarm pools on server only
+            foreach (var config in poolConfigs)
             {
-                isPrewarming = true;
-                PrewarmPool(pool, config.prewarmCount, config.prefab);
-                isPrewarming = false;
+                if (config.prewarmCount > 0 && pools.TryGetValue(config.prefab, out var pool))
+                {
+                    PrewarmPool(config.prefab, pool, config.prewarmCount);
+                }
             }
         }
     }
 
-    private void PrewarmPool(IObjectPool<NetworkObject> pool, int count, NetworkObject prefab)
+    private void PrewarmPool(NetworkObject prefab, ObjectPool<NetworkObject> pool, int count)
     {
-        var prewarmObjects = new List<NetworkObject>();
+        var prewarmObjects = new List<NetworkObject>(count);
+        
         for (int i = 0; i < count; i++)
         {
             var obj = pool.Get();
@@ -65,35 +91,49 @@ public class NetworkObjectPool : NetworkBehaviour
         {
             pool.Release(obj);
         }
+        
+        Debug.Log($"Prewarmed {count} instances of {prefab.name}");
     }
 
     private NetworkObject CreatePooledObject(NetworkObject prefab)
     {
-        if (!isPrewarming)
-        {
-            spawnedAfterWarmup++;
-        }
-
         var instance = Instantiate(prefab);
-        instance.GetComponent<PoolableNetworkObject>()?.SetPool(this, prefab);
+        
+        if (instance.TryGetComponent<IPoolable>(out var poolable))
+        {
+            poolable.SetPool(this, prefab);
+        }
+        
         return instance;
     }
 
-    private void OnTakeFromPool(NetworkObject networkObject)
+    private void OnTakeFromPool(NetworkObject obj)
     {
-        networkObject.gameObject.SetActive(true);
+        obj.gameObject.SetActive(true);
+        
+        if (obj.TryGetComponent<IPoolable>(out var poolable))
+        {
+            poolable.OnSpawn();
+        }
+        
         takenFromPool++;
     }
 
-    private void OnReturnedToPool(NetworkObject networkObject)
+    private void OnReturnedToPool(NetworkObject obj)
     {
-        networkObject.gameObject.SetActive(false);
+        obj.gameObject.SetActive(false);
+        
+        if (obj.TryGetComponent<IPoolable>(out var poolable))
+        {
+            poolable.OnDespawn();
+        }
+        
         returnedToPool++;
     }
 
-    private void OnDestroyPoolObject(NetworkObject networkObject)
+    private void OnDestroyPoolObject(NetworkObject obj)
     {
-        Destroy(networkObject.gameObject);
+        Destroy(obj.gameObject);
     }
 
     public NetworkObject Get(NetworkObject prefab)
@@ -120,18 +160,12 @@ public class NetworkObjectPool : NetworkBehaviour
         }
     }
 
-    // === Debug Helper ===
+    // Debug helper
     [ContextMenu("Print Pool Stats")]
     public void PrintStats()
     {
         Debug.Log($"NetworkObjectPool Stats:\n" +
                   $"- Taken from pool: {takenFromPool}\n" +
-                  $"- Returned to pool: {returnedToPool}\n" +
-                  $"- Spawned after warmup: {spawnedAfterWarmup}");
+                  $"- Returned to pool: {returnedToPool}");
     }
-
-    // Optional: public accessors if you want stats from other scripts
-    public int TakenFromPool => takenFromPool;
-    public int ReturnedToPool => returnedToPool;
-    public int SpawnedAfterWarmup => spawnedAfterWarmup;
 }

@@ -314,8 +314,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  moveSpeed: 2
-  isEnemy: 1
+  enemyData: {fileID: 11400000, guid: 2caebea9df7cfd64f8c4004546ed65bf, type: 2}
 --- !u!114 &6170350168194098777
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -330,6 +329,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   maxHealth: 30
+  deathEffectPrefab: {fileID: 0}
+  destroyOnDeath: 1
+  destroyDelay: 2
 --- !u!114 &4852635069742340273
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,6 +345,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  damageAmount: 10
-  attackCooldown: 1
-  attackRange: 2
+  enemyData: {fileID: 11400000, guid: 2caebea9df7cfd64f8c4004546ed65bf, type: 2}

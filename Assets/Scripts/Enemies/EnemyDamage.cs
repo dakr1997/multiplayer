@@ -3,25 +3,28 @@ using Unity.Netcode;
 
 public class EnemyDamage : NetworkBehaviour
 {
-    [Header("Damage Settings")]
-    [SerializeField] private float damageAmount = 10f;
-    [SerializeField] private float attackCooldown = 1f;
-    [SerializeField] private float attackRange = 2f;
+    [SerializeField] private EnemyData enemyData;
     
+    // State variables
     private float lastAttackTime;
     private Transform towerTransform;
-
-    private void Start()
+    
+    public override void OnNetworkSpawn()
     {
-        // Cache the tower reference
-        towerTransform = MainTowerHP.Instance.transform;
+        if (!IsServer) return;
+        
+        // Cache reference to main tower
+        if (MainTowerHP.Instance != null)
+        {
+            towerTransform = MainTowerHP.Instance.transform;
+        }
     }
 
     private void Update()
     {
         if (!IsServer) return;
         
-        if (Time.time - lastAttackTime >= attackCooldown)
+        if (Time.time - lastAttackTime >= enemyData.attackCooldown)
         {
             if (IsTowerInRange())
             {
@@ -33,14 +36,15 @@ public class EnemyDamage : NetworkBehaviour
 
     private bool IsTowerInRange()
     {
-        return Vector3.Distance(transform.position, towerTransform.position) <= attackRange;
+        return towerTransform != null && 
+               Vector3.Distance(transform.position, towerTransform.position) <= enemyData.attackRange;
     }
 
     private void AttackTower()
     {
         if (MainTowerHP.Instance != null && MainTowerHP.Instance.IsAlive)
         {
-            MainTowerHP.Instance.TakeDamage(damageAmount, gameObject.name);
+            MainTowerHP.Instance.TakeDamage(enemyData.damage, gameObject.name);
             PlayAttackEffectsClientRpc();
         }
     }
@@ -52,10 +56,12 @@ public class EnemyDamage : NetworkBehaviour
         Debug.Log($"Enemy {gameObject.name} attacked the tower!");
     }
 
-    // Optional: Visualize attack range in editor
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        if (enemyData != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, enemyData.attackRange);
+        }
     }
 }

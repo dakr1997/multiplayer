@@ -11,10 +11,17 @@ public class Aim
 
     public void AddTarget(Transform target)
     {
+        if (target == null)
+        {
+            Debug.LogError("Attempting to add null target to Aim!");
+            return;
+        }
+        
         if (!targets.Contains(target))
         {
             targets.Add(target);
             positionHistory[target] = new Queue<Vector3>();
+            Debug.Log($"Target added to aim system: {target.name}");
         }
     }
 
@@ -24,13 +31,23 @@ public class Aim
         {
             targets.Remove(target);
             positionHistory.Remove(target);
+            Debug.Log($"Target removed from aim system: {target.name}");
         }
     }
 
     private Vector3 CalculateVelocity(Transform target)
     {
-        if (!positionHistory.ContainsKey(target))
+        if (target == null)
+        {
+            Debug.LogError("Attempting to calculate velocity for null target!");
             return Vector3.zero;
+        }
+        
+        if (!positionHistory.ContainsKey(target))
+        {
+            Debug.LogWarning($"No position history for target {target.name}");
+            return Vector3.zero;
+        }
 
         Queue<Vector3> history = positionHistory[target];
         history.Enqueue(target.position);
@@ -45,19 +62,33 @@ public class Aim
         // Calculate velocity based on position change
         Vector3 oldest = history.Peek();
         Vector3 current = target.position;
-        return (current - oldest) / (history.Count - 1);
+        Vector3 velocity = (current - oldest) / (history.Count - 1);
+        
+        Debug.Log($"Calculated velocity for {target.name}: {velocity}, based on {history.Count} samples");
+        return velocity;
     }
 
     public Vector3 PredictTargetPosition(Transform target, float predictionTime)
     {
+        if (target == null)
+        {
+            Debug.LogError("Attempting to predict position for null target!");
+            return Vector3.zero;
+        }
+        
         Vector3 velocity = CalculateVelocity(target);
-        return target.position + velocity * predictionTime;
+        Vector3 predictedPos = target.position + velocity * predictionTime;
+        Debug.Log($"Predicted position for {target.name}: {predictedPos}, current position: {target.position}");
+        return predictedPos;
     }
 
     public Vector3? GetPredictedTargetPosition(float predictionTime)
     {
         if (targets.Count == 0)
+        {
+            Debug.Log("No targets to predict position for");
             return null;
+        }
 
         Transform bestTarget = null;
         float closestDistance = Mathf.Infinity;
@@ -65,6 +96,8 @@ public class Aim
 
         foreach (Transform target in targets)
         {
+            if (target == null) continue;
+            
             Vector3 futurePosition = PredictTargetPosition(target, predictionTime);
             float distance = Vector3.Distance(futurePosition, target.position);
 
@@ -76,6 +109,15 @@ public class Aim
             }
         }
 
-        return bestTarget != null ? predictedPosition : (Vector3?)null;
+        if (bestTarget != null)
+        {
+            Debug.Log($"Best target is {bestTarget.name} at predicted position {predictedPosition}");
+            return predictedPosition;
+        }
+        else
+        {
+            Debug.Log("No valid target found");
+            return null;
+        }
     }
 }

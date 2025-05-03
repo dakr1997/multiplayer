@@ -120,12 +120,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   magnetSpeed: 5
-  pickupRadius: 0.1
+  pickupRadius: 0.01
   magnetRadius: 5
-  expAmount: 10
-  hudCanvasTransform: {fileID: 0}
-  floatingTextPrefab: {fileID: 0}
-  textOffset: {x: 0, y: 1, z: 0}
+  lifetimeSeconds: 30
+  expAmount:
+    m_InternalValue: 10
 --- !u!212 &5245838830409579048
 SpriteRenderer:
   m_ObjectHideFlags: 0

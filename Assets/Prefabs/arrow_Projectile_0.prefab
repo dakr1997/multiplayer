@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 4865528241923208078}
   - component: {fileID: 3597535118586702980}
   - component: {fileID: -5695448521783083174}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: arrow_Projectile_0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -129,8 +129,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  speed: 10
-  maxRadius: 10
   collisionLayers:
     serializedVersion: 2
     m_Bits: 8
@@ -150,7 +148,7 @@ CircleCollider2D:
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1
   m_LayerOverridePriority: 0
   m_ForceSendLayers:
     serializedVersion: 2

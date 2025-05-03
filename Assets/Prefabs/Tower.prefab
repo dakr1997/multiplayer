@@ -45,12 +45,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  projectilePrefab: {fileID: 4865528241923208078, guid: 8490c1a7de1bca54ca420907720a03cd, type: 3}
-  TowerShootingPoint: {fileID: 2852416105238808906}
-  TowerDamage: 10
-  collectionCheck: 1
-  defaultCapacity: 20
-  maxSize: 100
+  projectilePrefab: {fileID: 0}
+  shootingPoint: {fileID: 0}
 --- !u!1 &7043881295015415257
 GameObject:
   m_ObjectHideFlags: 0
@@ -67,6 +63,8 @@ GameObject:
   - component: {fileID: 5645829157016721255}
   - component: {fileID: 4083045817391021963}
   - component: {fileID: 7828921738925912506}
+  - component: {fileID: 6548648991948907155}
+  - component: {fileID: 2634117654532574414}
   m_Layer: 0
   m_Name: Tower
   m_TagString: Tower
@@ -303,12 +301,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  TowerRange: 5
-  fireRate: 10
-  TowerDamage: 10
-  TowerShootingPoint: {fileID: 2852416105238808906}
-  projectileSpawner: {fileID: 8901346501863488783}
-  predictionTime: 1
+  towerData: {fileID: 11400000, guid: b04a678e10ceafa4397f430c00ddb0ed, type: 2}
+  shootPoint: {fileID: 2852416105238808906}
 --- !u!114 &7828921738925912506
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -322,8 +316,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  CurrentHP:
-    m_InternalValue: 100
+  maxHealth: 1000
+  destructionEffectPrefab: {fileID: 0}
+  respawnTime: 10
+--- !u!114 &6548648991948907155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7043881295015415257}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2c2c8d3d6939d94dadc1b2de3cb5b6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
+  deathEffectPrefab: {fileID: 0}
+  destroyOnDeath: 1
+  destroyDelay: 2
+--- !u!114 &2634117654532574414
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7043881295015415257}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fabf2538d36c9e3499b8a385470fd653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  projectilePrefab: {fileID: -458936415973220558, guid: 8490c1a7de1bca54ca420907720a03cd, type: 3}
+  shootingPoint: {fileID: 2852416105238808906}
 --- !u!1 &8540772427861201465
 GameObject:
   m_ObjectHideFlags: 0
@@ -334,7 +361,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2852416105238808906}
   m_Layer: 0
-  m_Name: ProjectileSpawnPoint
+  m_Name: shootPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

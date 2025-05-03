@@ -904,7 +904,7 @@ GameObject:
   - component: {fileID: 759274652}
   - component: {fileID: 759274651}
   - component: {fileID: 759274653}
-  - component: {fileID: 759274655}
+  - component: {fileID: 759274654}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -966,7 +966,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   expBubblePrefab: {fileID: 1686048968247618730, guid: 9cb9025d9ff3be84c814ba4aba3b58af, type: 3}
---- !u!114 &759274655
+  defaultXpAmount: 10
+--- !u!114 &759274654
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -988,7 +989,11 @@ MonoBehaviour:
     defaultCapacity: 25
     maxSize: 50
     prewarmCount: 10
---- !u!1 &2105206422
+  - prefab: {fileID: 4586832410830423464, guid: 6626339764bab3a4fb12828436f7774b, type: 3}
+    defaultCapacity: 25
+    maxSize: 50
+    prewarmCount: 10
+--- !u!1 &1021931052
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -996,46 +1001,43 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2105206425}
-  - component: {fileID: 2105206424}
-  - component: {fileID: 2105206423}
+  - component: {fileID: 1021931053}
+  - component: {fileID: 1021931055}
   m_Layer: 0
-  m_Name: Spawner (1)
+  m_Name: poolManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2105206423
+--- !u!4 &1021931053
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1021931052}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1021931055
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2105206422}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 21e01fbdc83b4734783a834d1e4000d6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  creaturePrefab: {fileID: 6522748650183270819, guid: 6626339764bab3a4fb12828436f7774b, type: 3}
-  spawnPoint: {fileID: 2105206425}
-  initialSpawnInterval: 0.2
-  spawnInterval: 0
---- !u!114 &2105206424
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2105206422}
+  m_GameObject: {fileID: 1021931052}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 657354921
+  GlobalObjectIdHash: 2059234807
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -1048,25 +1050,11 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!4 &2105206425
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2105206422}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.84, y: 3.13, z: 0.05010717}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 1021931053}
   - {fileID: 388355223}
   - {fileID: 519420032}
   - {fileID: 171197989}
@@ -1075,5 +1063,4 @@ SceneRoots:
   - {fileID: 387361296}
   - {fileID: 748785134}
   - {fileID: 135335590}
-  - {fileID: 2105206425}
   - {fileID: 648392802}
