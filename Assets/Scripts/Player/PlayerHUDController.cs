@@ -15,7 +15,7 @@ public class PlayerHUDController : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private Vector3 floatingTextOffset = new Vector3(0, 50, 0);
 
-    public void Initialize(PlayerHealth health, PlayerExperience exp, MainTowerHP tower)
+    public void Initialize(HealthComponent health, PlayerExperience exp, MainTowerHP tower)
     {
         if (health != null)
         {

@@ -1,48 +1,77 @@
+// Fixed TowerSpawner.cs
 using UnityEngine;
 using Unity.Netcode;
 
-public class TowerSpawner : NetworkBehaviour
+public class TowerSpawner : MonoBehaviour
 {
-    // This script is attached to an empty GameObject in the scene
-    // It spawns creatures at regular intervals
-    // It spawns them at the spawnPoint's position and rotation
-    // Assign the enemy prefab and spawn point in the Inspector
-
-    public GameObject TowerPrefab; // Assign this in the Inspector
-    public Transform spawnPoint;   // Assign this in the Inspector
-
-
+    [SerializeField] GameObject towerPrefab;
+    [SerializeField] Transform spawnPoint;
+    
+    // Reference to spawned tower
+    private GameObject _spawnedTower;
+    
     void Start()
     {
-        SpawnTower();
-    }
-
-
-    void SpawnTower()
-    {
-        // Check if enemyPrefab and spawnPoint are assigned
-        if (TowerPrefab == null || spawnPoint == null)
+        // Only spawn tower if we're the server and network is active
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening && NetworkManager.Singleton.IsServer)
         {
-            Debug.LogError("Assign creaturePrefab and spawnPoint in the Inspector!");
+            SpawnTower();
+        }
+        else
+        {
+            Debug.Log("TowerSpawner: Waiting for network to be ready before spawning");
+        }
+    }
+    
+    void OnEnable()
+    {
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnServerStarted += OnServerStarted;
+        }
+    }
+    
+    void OnDisable()
+    {
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
+        }
+    }
+    
+    void OnServerStarted()
+    {
+        // Network is now ready, spawn tower if we're the server
+        if (NetworkManager.Singleton.IsServer)
+        {
+            SpawnTower();
+        }
+    }
+    
+    public void SpawnTower()
+    {
+        if (_spawnedTower != null)
+        {
+            Debug.LogWarning("Tower already spawned!");
             return;
         }
-
-        // Instantiate the enemy and spawn it on the network
-        GameObject Tower = Instantiate(
-            TowerPrefab,
-            spawnPoint.position,
-            spawnPoint.rotation
-        );
-
-        // Make sure the enemy has a NetworkObject component for networking
-        NetworkObject networkObject = Tower.GetComponent<NetworkObject>();
-
-        // Spawn the enemy across all clients (only on the server)
-        if (networkObject != null)
+        
+        Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
+        
+        _spawnedTower = Instantiate(towerPrefab, position, Quaternion.identity);
+        
+        // Only spawn as networked object if network is active
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
         {
-            networkObject.Spawn(); // This will spawn the object across the network
+            NetworkObject networkObject = _spawnedTower.GetComponent<NetworkObject>();
+            if (networkObject != null)
+            {
+                networkObject.Spawn();
+            }
+            else
+            {
+                Debug.LogError("Tower prefab is missing NetworkObject component!");
+            }
         }
-
-        Debug.Log("Tower spawned at: " + spawnPoint.position);
     }
 }

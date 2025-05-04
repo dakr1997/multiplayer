@@ -1,30 +1,45 @@
 using UnityEngine;
 using Unity.Netcode;
 
+[RequireComponent(typeof(HealthComponent))]
+[RequireComponent(typeof(PlayerExperience))]
+[RequireComponent(typeof(PlayerMovement))]
 public class PlayerEntity : NetworkBehaviour
 {
-    public PlayerHealth HealthComponent { get; private set; }
-    public PlayerExperience ExperienceComponent { get; private set; }
-    public PlayerMovement MovementComponent { get; private set; }
+    // Component references
+    public HealthComponent Health { get; private set; }
+    public PlayerExperience Experience { get; private set; }
+    public PlayerMovement Movement { get; private set; }
+    
     private void Awake()
     {
-        HealthComponent = GetComponent<PlayerHealth>();
-        ExperienceComponent = GetComponent<PlayerExperience>();
-        MovementComponent = GetComponent<PlayerMovement>();
+        // Cache components
+        Health = GetComponent<HealthComponent>();
+        Experience = GetComponent<PlayerExperience>();
+        Movement = GetComponent<PlayerMovement>();
     }
-
+    
     public override void OnNetworkSpawn()
     {
         if (IsOwner && IsClient)
         {
-            Debug.Log("Player spawned on client: " + OwnerClientId);
-            var handler = GetComponent<PlayerClientHandler>();
-            handler?.Initialize(this);  // Initialize the handler to hook up the player
+            Debug.Log($"Player {OwnerClientId} spawned - initializing client handler");
+            
+            // Find or add PlayerClientHandler
+            var clientHandler = GetComponent<PlayerClientHandler>();
+            if (clientHandler == null)
+            {
+                clientHandler = gameObject.AddComponent<PlayerClientHandler>();
+            }
+            
+            // Let the client handler do all UI and input setup
+            clientHandler.Initialize(this);
         }
     }
-
-
     
-
-    // You can also request tower info at any time from the server
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+        // Any cleanup code here if needed
+    }
 }

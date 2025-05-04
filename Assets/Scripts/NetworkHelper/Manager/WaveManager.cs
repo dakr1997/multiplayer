@@ -1,3 +1,4 @@
+// File: Assets/_Project/Scripts/Core/WaveSystem/WaveManager.cs
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections;
@@ -52,6 +53,11 @@ public class WaveManager : NetworkBehaviour
     public static event Action<int> OnWaveCompleted;
     public static event Action OnAllWavesCompleted;
     
+    // Public access to wave status
+    public bool IsCurrentWaveComplete => !waveInProgress && remainingEnemiesInWave.Value <= 0;
+    public int CurrentWaveNumber => currentWaveIndex.Value + 1;
+    public int RemainingEnemies => remainingEnemiesInWave.Value;
+    
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
@@ -63,12 +69,22 @@ public class WaveManager : NetworkBehaviour
         // Subscribe to enemy death
         EnemyAI.OnEnemyDied += HandleEnemyDeath;
         
+        // Register with GameServices
+        GameServices.Register<WaveManager>(this);
+        
         Debug.Log($"Wave manager initialized with {waves.Count} waves");
     }
     
     private void Update()
     {
         if (!IsServer) return;
+        
+        // Check if the game state is active wave state
+        var gameStateManager = GameServices.Get<GameStateManager>();
+        if (gameStateManager != null && !gameStateManager.IsInWaveState)
+        {
+            return; // Only process waves when in wave state
+        }
         
         // Wait for spawn time
         if (Time.time < nextSpawnTime) return;
@@ -84,8 +100,13 @@ public class WaveManager : NetworkBehaviour
         }
     }
     
-    private void StartNextWave()
+    /// <summary>
+    /// Starts the next wave. Can be called by the GameStateManager.
+    /// </summary>
+    public void StartNextWave()
     {
+        if (!IsServer) return;
+        
         if (waves.Count == 0)
         {
             Debug.LogWarning("No waves configured!");
@@ -149,9 +170,7 @@ public class WaveManager : NetworkBehaviour
             // Wave spawning complete
             waveInProgress = false;
             
-            // Increment wave index
-            currentWaveIndex.Value++;
-            
+            // Don't increment wave index - let the state manager handle this
             // Set delay for next wave
             nextSpawnTime = Time.time + wave.waveDelay;
             
@@ -236,5 +255,8 @@ public class WaveManager : NetworkBehaviour
     {
         // Unsubscribe from events
         EnemyAI.OnEnemyDied -= HandleEnemyDeath;
+        
+        // Unregister from GameServices
+        GameServices.Unregister<WaveManager>();
     }
 }

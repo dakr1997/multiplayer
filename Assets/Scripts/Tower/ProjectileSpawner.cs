@@ -3,51 +3,40 @@ using Unity.Netcode;
 
 public class ProjectileSpawner : NetworkBehaviour
 {
-    // Configuration
     [SerializeField] private NetworkObject projectilePrefab;
     [SerializeField] private Transform shootingPoint;
+    [SerializeField] private ProjectileData defaultProjectileData;
     
-    // Properties
     public Transform ShootingPoint => shootingPoint;
     public ProjectileData ProjectileData { get; set; }
     
-    // State
     private NetworkObjectPool poolManager;
-    private GameObject owner; // Reference to the owner game object
+    private GameObject owner;
     
     private void Awake()
     {
+        InitializeComponents();
+    }
+    
+    private void InitializeComponents()
+    {
         poolManager = NetworkObjectPool.Instance;
-        if (poolManager == null)
-        {
-            Debug.LogError("NetworkObjectPool instance not found!");
-        }
         
         if (shootingPoint == null)
-        {
             shootingPoint = transform;
-            Debug.Log("No shooting point assigned, using self transform.");
-        }
+        
+        // Set default projectile data if available
+        if (ProjectileData == null && defaultProjectileData != null)
+            ProjectileData = defaultProjectileData;
         
         // Get the owner game object (usually the Tower)
         owner = transform.parent != null ? transform.parent.gameObject : gameObject;
-        
-        if (owner != null)
-        {
-            Debug.Log($"Found owner: {owner.name}");
-        }
     }
     
     public void SetShootingPoint(Transform point)
     {
-        if (point == null)
-        {
-            Debug.LogError("Trying to set null shooting point!");
-            return;
-        }
-        
-        shootingPoint = point;
-        Debug.Log($"Shooting point set to {point.name}");
+        if (point != null)
+            shootingPoint = point;
     }
     
     /// <summary>
@@ -55,65 +44,42 @@ public class ProjectileSpawner : NetworkBehaviour
     /// </summary>
     public void SpawnProjectile(Vector3 direction)
     {
-        if (!IsServer)
-        {
-            Debug.LogWarning("SpawnProjectile called on client!");
+        if (!IsValidToSpawn())
             return;
-        }
         
-        if (projectilePrefab == null)
-        {
-            Debug.LogError("Projectile prefab not assigned!");
-            return;
-        }
-        
-        if (ProjectileData == null)
-        {
-            Debug.LogError("ProjectileData is null in ProjectileSpawner!");
-            return;
-        }
-        
-        if (poolManager == null)
-        {
-            Debug.LogError("NetworkObjectPool is null!");
-            return;
-        }
-        
-        Debug.Log($"Spawning projectile with ProjectileData: {ProjectileData.projectileName}, Speed: {ProjectileData.speed}");
-        
-        // Get from pool
         NetworkObject projectileNetObj = poolManager.Get(projectilePrefab);
         if (projectileNetObj == null)
-        {
-            Debug.LogError("Failed to get projectile from pool!");
             return;
-        }
         
-        // Initialize projectile
         if (projectileNetObj.TryGetComponent<Projectile>(out var projectile))
         {
-            // Position
-            projectile.transform.position = shootingPoint.position;
-            projectile.transform.rotation = shootingPoint.rotation;
-            
-            // Initialize with owner to ignore
-            projectile.Initialize(direction, ProjectileData, gameObject.name, owner);
-            
-            // Spawn on network
-            if (!projectileNetObj.IsSpawned)
-            {
-                projectileNetObj.Spawn(true);
-                Debug.Log($"Projectile spawned on network at {shootingPoint.position}, direction {direction}");
-            }
-            else
-            {
-                Debug.Log("Projectile already spawned on network");
-            }
+            ConfigureProjectile(projectile, direction);
+            SpawnOnNetwork(projectileNetObj);
         }
         else
         {
-            Debug.LogError("Projectile component missing on prefab!");
             poolManager.Release(projectilePrefab, projectileNetObj);
         }
+    }
+    
+    private bool IsValidToSpawn()
+    {
+        return IsServer && 
+               projectilePrefab != null && 
+               ProjectileData != null && 
+               poolManager != null;
+    }
+    
+    private void ConfigureProjectile(Projectile projectile, Vector3 direction)
+    {
+        projectile.transform.position = shootingPoint.position;
+        projectile.transform.rotation = shootingPoint.rotation;
+        projectile.Initialize(direction, ProjectileData, gameObject.name, owner);
+    }
+    
+    private void SpawnOnNetwork(NetworkObject projectileNetObj)
+    {
+        if (!projectileNetObj.IsSpawned)
+            projectileNetObj.Spawn(true);
     }
 }
