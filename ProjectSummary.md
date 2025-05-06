@@ -1,5 +1,5 @@
 # Unity Project Summary
-Generated on: 2025-05-06 19:43:06
+Generated on: 2025-05-06 22:50:35
 Project: My project
 Version: 1.0
 
@@ -8,7 +8,7 @@ Key project folders:
 - Editor
   - Contains 2 scripts
 - New_Scripts
-  - Contains 33 scripts
+  - Contains 34 scripts
   - Core
   - Enemies
   - UI
@@ -42,8 +42,8 @@ Key project folders:
 - UI
 
 ## Code Analysis
-Total scripts: 55
-- MonoBehaviour scripts: 12
+Total scripts: 56
+- MonoBehaviour scripts: 13
 - ScriptableObject scripts: 3
 - Interfaces: 2
 - Static classes: 2
@@ -56,13 +56,13 @@ Total scripts: 55
   - PlayerMovement
   - ProjectileSpawner
   - ...and 16 more
-- MonoBehaviour: 12 implementations
+- MonoBehaviour: 13 implementations
   - CodeSummarizer
   - EnemyManager
   - JoinMenu
   - LobbyUI
   - PlayerCameraFollow_Smooth
-  - ...and 7 more
+  - ...and 8 more
 - GameState: 4 implementations
   - BuildingState
   - GameOverState
@@ -90,8 +90,14 @@ Total scripts: 55
 - TowerData: referenced by 1 classes
 
 ## Recent Changes
-Files modified in the last 1 days:
-- Assets\Scripts\Player\PlayerClientHandler.cs (modified 2025-05-05)
+Files modified in the last 7 days:
+- Assets\New_Scripts\Core\Lobby\NetworkLobbyManager.cs (modified 2025-05-06)
+- Assets\Scripts\Player\PlayerClientHandler.cs (modified 2025-05-06)
+- Assets\New_Scripts\Core\Network\SceneBasedPlayerSpawner.cs (modified 2025-05-06)
+- Assets\New_Scripts\Core\Lobby\GameSceneInitializer.cs (modified 2025-05-06)
+- Assets\New_Scripts\Core\GameManagement\GameInitializer.cs (modified 2025-05-06)
+- Assets\New_Scripts\UI\JoinMenu.cs (modified 2025-05-06)
+- Assets\Scripts\Player\PlayerHUDController.cs (modified 2025-05-06)
 - Assets\New_Scripts\Core\Towers\Tower.cs (modified 2025-05-05)
 - Assets\New_Scripts\Core\Network\ClientPrediction.cs (modified 2025-05-05)
 - Assets\New_Scripts\Core\Player\Base\PlayerEntity.cs (modified 2025-05-05)
@@ -105,13 +111,7 @@ Files modified in the last 1 days:
 - Assets\Scripts\NetworkHelper\Pools\NetworkObjectPool.cs (modified 2025-05-05)
 - Assets\Scripts\NetworkHelper\DamageHelper.cs (modified 2025-05-05)
 - Assets\Scripts\NetworkHelper\Pools\PoolableNetworkObject.cs (modified 2025-05-05)
-- Assets\New_Scripts\Enemies\EnemyManager.cs (modified 2025-05-05)
-- Assets\New_Scripts\Enemies\Base\EnemyAI.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\WaveSystem\WaveManager.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\GameState\BuildingState.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Lobby\GameSceneInitializer.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Components\HealthComponent.cs (modified 2025-05-05)
-- ...and 10 more files
+- ...and 29 more files
 
 ## TODO Items
 - [CodeSummarizer.cs] items
@@ -288,11 +288,16 @@ classDiagram
   MonoBehaviour <|-- GameSceneInitializer
   class NetworkLobbyManager {
     +Equals()
+    +RegisterGameSceneLoadedCallback()
+    +UnregisterGameSceneLoadedCallback()
     +PlayerConnected()
     +PlayerDisconnected()
     +SetPlayerNameServerRpc()
     +TogglePlayerReadyServerRpc()
     +StartGame()
+    +IsPlayerSpawningEnabled()
+    +SpawnPlayersInGameScene()
+    +GetPlayerName()
   }
   NetworkBehaviour <|-- NetworkLobbyManager
   class ClientPrediction {
@@ -310,6 +315,11 @@ classDiagram
     +MonoBehaviour
   }
   MonoBehaviour <|-- PersistentObject
+  class SceneBasedPlayerSpawner {
+    +MonoBehaviour
+    +StartGame()
+  }
+  MonoBehaviour <|-- SceneBasedPlayerSpawner
   class Tower {
   }
   NetworkBehaviour <|-- Tower

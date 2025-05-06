@@ -63,7 +63,6 @@ public class PlayerClientHandler : NetworkBehaviour
         }
         
         // Now we should be in the game scene, wait a bit more for objects to spawn
-        yield return new WaitForSeconds(5.0f);
         
         // Setup camera and HUD only in game scene
         SetupCamera();

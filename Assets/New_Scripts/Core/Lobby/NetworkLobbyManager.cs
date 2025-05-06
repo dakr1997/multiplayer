@@ -242,7 +242,7 @@ public class NetworkLobbyManager : NetworkBehaviour
         if (IsServer && countdownActive)
         {
             countdownTimer.Value -= Time.deltaTime;
-            
+            Debug.Log($"Countdown timer: {countdownTimer.Value}");
             if (countdownTimer.Value <= 0)
             {
                 countdownActive = false;

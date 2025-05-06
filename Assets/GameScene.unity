@@ -1109,7 +1109,7 @@ MonoBehaviour:
   - {fileID: 6522748650183270819, guid: 6626339764bab3a4fb12828436f7774b, type: 3}
   enemyHealthMultiplierPerWave: 0.2
   enemyDamageMultiplierPerWave: 0.1
-  enemiesPerWave: 20
+  enemiesPerWave: 200
   additionalEnemiesPerWave: 10
 --- !u!4 &1964929702
 Transform:
