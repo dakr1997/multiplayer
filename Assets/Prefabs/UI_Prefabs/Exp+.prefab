@@ -185,3 +185,4 @@ MonoBehaviour:
     m_InternalValue: 10
   targetPlayerNetId:
     m_InternalValue: 0
+  renderers: []

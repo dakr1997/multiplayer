@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using Core.Enemies.Base;
+
 public class XPManager : NetworkBehaviour
 {
     public static XPManager Instance { get; private set; }
@@ -235,9 +236,13 @@ public class XPManager : NetworkBehaviour
         
         if (bubbleNetObj.TryGetComponent<ExpBubble>(out var bubble))
         {
-            // Initialize before spawning
+            // IMPORTANT: Set position directly BEFORE initialization
+            bubbleNetObj.transform.position = position;
+            
+            // Then initialize the bubble with the same position
             bubble.Initialize(position, xpAmount);
             
+            // Spawn only after position is set correctly
             if (!bubbleNetObj.IsSpawned)
             {
                 bubbleNetObj.Spawn(true);

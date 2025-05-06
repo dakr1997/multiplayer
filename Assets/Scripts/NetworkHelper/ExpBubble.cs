@@ -34,24 +34,39 @@ public class ExpBubble : PoolableNetworkObject
     private Vector3 lastKnownPosition;
     private float lastPositionUpdateTime;
     
+    [SerializeField] private Renderer[] renderers;
+    
+    private void Awake()
+    {
+        // If renderers not assigned, find them automatically
+        if (renderers == null || renderers.Length == 0)
+        {
+            renderers = GetComponentsInChildren<Renderer>();
+        }
+    }
+    
     public void Initialize(Vector3 position, int xpValue)
     {
         if (IsServer)
         {
-            transform.position = position;
+            // Note: Position is already set directly in XPManager before this call
+            
             expAmount.Value = xpValue;
             isCollected = false;
             targetPlayer = null;
             spawnTime = Time.time;
             targetPlayerNetId.Value = 0;
             
-            Debug.Log($"ExpBubble initialized at {position} with {xpValue} XP");
+            Debug.Log($"ExpBubble initialized at {transform.position} with {xpValue} XP");
         }
     }
     
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+        
+        // Enable renderers now that we're positioned correctly
+        SetRenderersEnabled(true);
         
         // Client tracking variables
         lastKnownPosition = transform.position;
@@ -67,11 +82,42 @@ public class ExpBubble : PoolableNetworkObject
     public override void OnSpawn()
     {
         base.OnSpawn();
+        
+        // Hide renderers until fully spawned
+        SetRenderersEnabled(false);
+        
         isCollected = false;
         targetPlayer = null;
         spawnTime = Time.time;
         clientTargetPlayer = null;
         clientPredictionVelocity = Vector3.zero;
+    }
+    
+    public override void OnDespawn()
+    {
+        base.OnDespawn();
+        
+        // Hide renderers when returned to pool
+        SetRenderersEnabled(false);
+        
+        isCollected = false;
+        targetPlayer = null;
+        clientTargetPlayer = null;
+        clientPredictionVelocity = Vector3.zero;
+    }
+    
+    private void SetRenderersEnabled(bool enabled)
+    {
+        if (renderers != null)
+        {
+            foreach (var renderer in renderers)
+            {
+                if (renderer != null)
+                {
+                    renderer.enabled = enabled;
+                }
+            }
+        }
     }
     
     private void OnTargetPlayerChanged(ulong previousId, ulong newId)
@@ -254,14 +300,5 @@ public class ExpBubble : PoolableNetworkObject
     {
         // Play collection effects
         // You could add particle effects, sound, etc.
-    }
-    
-    public override void OnDespawn()
-    {
-        base.OnDespawn();
-        isCollected = false;
-        targetPlayer = null;
-        clientTargetPlayer = null;
-        clientPredictionVelocity = Vector3.zero;
     }
 }
