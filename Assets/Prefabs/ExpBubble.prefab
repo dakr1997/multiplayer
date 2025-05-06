@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 9099981965962942799}
   - component: {fileID: 8686120953605589563}
   - component: {fileID: 5245838830409579048}
+  - component: {fileID: -8815032859396044403}
   m_Layer: 0
   m_Name: ExpBubble
   m_TagString: Untagged
@@ -123,8 +124,12 @@ MonoBehaviour:
   pickupRadius: 0.01
   magnetRadius: 5
   lifetimeSeconds: 30
+  clientPredictionStrength: 1.5
   expAmount:
     m_InternalValue: 10
+  targetPlayerNetId:
+    m_InternalValue: 0
+  renderers: []
 --- !u!212 &5245838830409579048
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -180,3 +185,17 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &-8815032859396044403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4679411115189954909}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e78cc42601f4dd43acb7b40df7ef2bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interpolationBackTime: 0.1
+  maxBufferSize: 30

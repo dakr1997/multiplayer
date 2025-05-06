@@ -27,6 +27,8 @@ public class ExpBubble : PoolableNetworkObject
     private Transform targetPlayer;
     private bool isCollected = false;
     private float spawnTime;
+    private float lastPickupCheck = 0f;
+    private const float PICKUP_CHECK_INTERVAL = 0.2f; // Check every 0.2 seconds
     
     // Client prediction
     private Transform clientTargetPlayer;
@@ -55,6 +57,7 @@ public class ExpBubble : PoolableNetworkObject
             isCollected = false;
             targetPlayer = null;
             spawnTime = Time.time;
+            lastPickupCheck = 0f;
             targetPlayerNetId.Value = 0;
             
             Debug.Log($"ExpBubble initialized at {transform.position} with {xpValue} XP");
@@ -89,6 +92,7 @@ public class ExpBubble : PoolableNetworkObject
         isCollected = false;
         targetPlayer = null;
         spawnTime = Time.time;
+        lastPickupCheck = 0f;
         clientTargetPlayer = null;
         clientPredictionVelocity = Vector3.zero;
     }
@@ -165,11 +169,25 @@ public class ExpBubble : PoolableNetworkObject
         
         if (isCollected) return;
         
+        // Check for pickup from ALL players on a timed interval
+        if (Time.time - lastPickupCheck >= PICKUP_CHECK_INTERVAL)
+        {
+            lastPickupCheck = Time.time;
+            CheckAllPlayersForPickup();
+            
+            // If collected during the check, return
+            if (isCollected) return;
+        }
+        
+        // If no target player, find one
         if (targetPlayer == null)
         {
             FindNearestPlayer();
             return;
         }
+        
+        // Make sure target player still exists
+        if (targetPlayer == null) return;
         
         float distance = Vector3.Distance(transform.position, targetPlayer.position);
         
@@ -191,11 +209,28 @@ public class ExpBubble : PoolableNetworkObject
                 targetPlayerNetId.Value = netObj.OwnerClientId;
             }
         }
+    }
+    
+    private void CheckAllPlayersForPickup()
+    {
+        if (NetworkManager.Singleton == null) return;
         
-        // Check pickup
-        if (distance <= pickupRadius)
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
-            CollectBubble();
+            if (client.PlayerObject != null)
+            {
+                float distance = Vector3.Distance(
+                    transform.position, 
+                    client.PlayerObject.transform.position
+                );
+                
+                // If player is in pickup range, collect
+                if (distance <= pickupRadius)
+                {
+                    CollectBubble();
+                    return; // Exit after collecting
+                }
+            }
         }
     }
     
@@ -285,6 +320,7 @@ public class ExpBubble : PoolableNetworkObject
             return;
         }
         
+        // Award XP to ALL players, regardless of who picked it up
         XPManager.Instance.AwardXPToAll(expAmount.Value);
         Debug.Log($"XP Bubble collected: Awarded {expAmount.Value} XP to all players");
         
@@ -300,5 +336,14 @@ public class ExpBubble : PoolableNetworkObject
     {
         // Play collection effects
         // You could add particle effects, sound, etc.
+    }
+    
+    // Call this method directly from your test code if needed
+    public void DebugPickup()
+    {
+        if (IsServer && !isCollected)
+        {
+            CollectBubble();
+        }
     }
 }
