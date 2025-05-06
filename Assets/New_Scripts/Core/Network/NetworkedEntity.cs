@@ -2,6 +2,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using System;
+using Core.Interfaces;
 
 /// <summary>
 /// Base class for all networked game entities.

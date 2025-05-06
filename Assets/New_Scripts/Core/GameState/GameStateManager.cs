@@ -1,143 +1,148 @@
 using UnityEngine;
 using Unity.Netcode;
+using System;
+using Core.GameManagement;
 
-/// <summary>
-/// Manages game state transitions and current state.
-/// </summary>
-public class GameStateManager : NetworkBehaviour
+namespace Core.GameState
 {
-    // Game states
-    private GameState _currentState;
-    private WaveState _waveState;
-    private BuildingState _buildingState;
-    private GameOverState _gameOverState;
-    private LobbyState _lobbyState;
-    
-    // Network variable for current state (for synchronization)
-    private NetworkVariable<GameStateType> _networkGameState = new NetworkVariable<GameStateType>(
-        GameStateType.Lobby,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
-    
-    // Events
-    public delegate void GameStateChangedDelegate(GameStateType newState);
-    public event GameStateChangedDelegate OnGameStateChanged;
-    
-    private void Awake()
-    {
-        // Initialize states
-        _waveState = new WaveState(this);
-        _buildingState = new BuildingState(this);
-        _gameOverState = new GameOverState(this);
-        _lobbyState = new LobbyState(this);
-    }
-    
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-        
-        // Register with service locator
-        GameServices.Register<GameStateManager>(this);
-        
-        // Subscribe to network variable changes
-        _networkGameState.OnValueChanged += OnNetworkStateChanged;
-        
-        // Set initial state
-        if (IsServer)
-        {
-            ChangeState(GameStateType.Lobby);
-        }
-        else
-        {
-            // Client should sync with current network state
-            UpdateStateFromNetwork(_networkGameState.Value);
-        }
-    }
-    
-    private void Update()
-    {
-        // Update current state
-        _currentState?.Update();
-    }
-    
     /// <summary>
-    /// Change the current game state. Only the server can initiate state changes.
+    /// Manages game state transitions and current state.
     /// </summary>
-    public void ChangeState(GameStateType newState)
+    public class GameStateManager : NetworkBehaviour
     {
-        if (!IsServer)
+        // Game states
+        private GameState _currentState;
+        private WaveState _waveState;
+        private BuildingState _buildingState;
+        private GameOverState _gameOverState;
+        private LobbyState _lobbyState;
+        
+        // Network variable for current state (for synchronization)
+        private NetworkVariable<GameStateType> _networkGameState = new NetworkVariable<GameStateType>(
+            GameStateType.Lobby,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server
+        );
+        
+        // Events
+        public delegate void GameStateChangedDelegate(GameStateType newState);
+        public event GameStateChangedDelegate OnGameStateChanged;
+        
+        private void Awake()
         {
-            Debug.LogWarning("Only the server can change game state!");
-            return;
+            // Initialize states
+            _waveState = new WaveState(this);
+            _buildingState = new BuildingState(this);
+            _gameOverState = new GameOverState(this);
+            _lobbyState = new LobbyState(this);
         }
         
-        // Update network variable to synchronize with clients
-        _networkGameState.Value = newState;
-        
-        // Apply the state change locally
-        UpdateStateFromNetwork(newState);
-    }
-    
-    /// <summary>
-    /// Handle network state change.
-    /// </summary>
-    private void OnNetworkStateChanged(GameStateType oldState, GameStateType newState)
-    {
-        // Apply state change when network variable changes
-        if (!IsServer) // Only clients need to react to this, server already applied the change
+        public override void OnNetworkSpawn()
         {
+            base.OnNetworkSpawn();
+            
+            // Register with service locator
+            GameServices.Register<GameStateManager>(this);
+            
+            // Subscribe to network variable changes
+            _networkGameState.OnValueChanged += OnNetworkStateChanged;
+            
+            // Set initial state
+            if (IsServer)
+            {
+                ChangeState(GameStateType.Lobby);
+            }
+            else
+            {
+                // Client should sync with current network state
+                UpdateStateFromNetwork(_networkGameState.Value);
+            }
+        }
+        
+        private void Update()
+        {
+            // Update current state
+            _currentState?.Update();
+        }
+        
+        /// <summary>
+        /// Change the current game state. Only the server can initiate state changes.
+        /// </summary>
+        public void ChangeState(GameStateType newState)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("Only the server can change game state!");
+                return;
+            }
+            
+            // Update network variable to synchronize with clients
+            _networkGameState.Value = newState;
+            
+            // Apply the state change locally
             UpdateStateFromNetwork(newState);
         }
-    }
-    
-    /// <summary>
-    /// Update local state based on network state.
-    /// </summary>
-    private void UpdateStateFromNetwork(GameStateType stateType)
-    {
-        // Exit current state if it exists
-        _currentState?.Exit();
         
-        // Set new state
-        switch (stateType)
+        /// <summary>
+        /// Handle network state change.
+        /// </summary>
+        private void OnNetworkStateChanged(GameStateType oldState, GameStateType newState)
         {
-            case GameStateType.Lobby:
-                _currentState = _lobbyState;
-                break;
-            case GameStateType.Wave:
-                _currentState = _waveState;
-                break;
-            case GameStateType.Building:
-                _currentState = _buildingState;
-                break;
-            case GameStateType.GameOver:
-                _currentState = _gameOverState;
-                break;
+            // Apply state change when network variable changes
+            if (!IsServer) // Only clients need to react to this, server already applied the change
+            {
+                UpdateStateFromNetwork(newState);
+            }
         }
         
-        // Enter new state
-        _currentState.Enter();
+        /// <summary>
+        /// Update local state based on network state.
+        /// </summary>
+        private void UpdateStateFromNetwork(GameStateType stateType)
+        {
+            // Exit current state if it exists
+            _currentState?.Exit();
+            
+            // Set new state
+            switch (stateType)
+            {
+                case GameStateType.Lobby:
+                    _currentState = _lobbyState;
+                    break;
+                case GameStateType.Wave:
+                    _currentState = _waveState;
+                    break;
+                case GameStateType.Building:
+                    _currentState = _buildingState;
+                    break;
+                case GameStateType.GameOver:
+                    _currentState = _gameOverState;
+                    break;
+            }
+            
+            // Enter new state
+            _currentState.Enter();
+            
+            // Trigger event
+            OnGameStateChanged?.Invoke(stateType);
+            
+            Debug.Log($"Game state changed to {stateType}");
+        }
         
-        // Trigger event
-        OnGameStateChanged?.Invoke(stateType);
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+            
+            // Unsubscribe from events
+            _networkGameState.OnValueChanged -= OnNetworkStateChanged;
+            
+            // Unregister from service locator
+            GameServices.Unregister<GameStateManager>();
+        }
         
-        Debug.Log($"Game state changed to {stateType}");
+        // Public properties
+        public GameStateType CurrentStateType => _networkGameState.Value;
+        public bool IsInWaveState => _networkGameState.Value == GameStateType.Wave;
+        public bool IsInBuildingState => _networkGameState.Value == GameStateType.Building;
     }
-    
-    public override void OnNetworkDespawn()
-    {
-        base.OnNetworkDespawn();
-        
-        // Unsubscribe from events
-        _networkGameState.OnValueChanged -= OnNetworkStateChanged;
-        
-        // Unregister from service locator
-        GameServices.Unregister<GameStateManager>();
-    }
-    
-    // Public properties
-    public GameStateType CurrentStateType => _networkGameState.Value;
-    public bool IsInWaveState => _networkGameState.Value == GameStateType.Wave;
-    public bool IsInBuildingState => _networkGameState.Value == GameStateType.Building;
 }

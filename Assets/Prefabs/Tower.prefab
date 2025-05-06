@@ -47,6 +47,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   projectilePrefab: {fileID: 0}
   shootingPoint: {fileID: 0}
+  defaultProjectileData: {fileID: 0}
 --- !u!1 &7043881295015415257
 GameObject:
   m_ObjectHideFlags: 0
@@ -63,7 +64,6 @@ GameObject:
   - component: {fileID: 5645829157016721255}
   - component: {fileID: 4083045817391021963}
   - component: {fileID: 7828921738925912506}
-  - component: {fileID: 6548648991948907155}
   - component: {fileID: 2634117654532574414}
   m_Layer: 0
   m_Name: Tower
@@ -303,6 +303,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   towerData: {fileID: 11400000, guid: b04a678e10ceafa4397f430c00ddb0ed, type: 2}
   shootPoint: {fileID: 2852416105238808906}
+  towerSprite: {fileID: 0}
 --- !u!114 &7828921738925912506
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -317,25 +318,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   maxHealth: 1000
-  destructionEffectPrefab: {fileID: 0}
-  respawnTime: 10
---- !u!114 &6548648991948907155
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7043881295015415257}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2c2c8d3d6939d94dadc1b2de3cb5b6a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  deathEffectPrefab: {fileID: 0}
-  destroyOnDeath: 1
-  destroyDelay: 2
+  currentHealth: 0
+  destroyedEffectPrefab: {fileID: 0}
+  towerModel: {fileID: 0}
 --- !u!114 &2634117654532574414
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -351,6 +336,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   projectilePrefab: {fileID: -458936415973220558, guid: 8490c1a7de1bca54ca420907720a03cd, type: 3}
   shootingPoint: {fileID: 2852416105238808906}
+  defaultProjectileData: {fileID: 11400000, guid: 320c59804c15fb44bad11a5fcc03768b, type: 2}
 --- !u!1 &8540772427861201465
 GameObject:
   m_ObjectHideFlags: 0

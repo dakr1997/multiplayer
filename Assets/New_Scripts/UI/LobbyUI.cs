@@ -1,10 +1,9 @@
-// File: Assets/_Project/Scripts/UI/LobbyUI.cs
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 using Unity.Netcode;
-
+using Core.GameManagement;
 /// <summary>
 /// UI for the lobby state.
 /// </summary>
@@ -43,24 +42,22 @@ public class LobbyUI : MonoBehaviour
         }
     }
     
-// Modify the Start method in LobbyUI
-private void Start()
-{
-    // Try to get lobby manager, but don't error if not found yet
-    TryGetLobbyManager();
-    
-    // Set up player name input
-    if (_playerNameInput != null)
+    private void Start()
     {
-        // Set default player name
-        _playerNameInput.text = $"Player {Random.Range(1000, 9999)}";
+        // Try to get lobby manager, but don't error if not found yet
+        TryGetLobbyManager();
         
-        // Subscribe to name changes
-        _playerNameInput.onEndEdit.AddListener(OnPlayerNameChanged);
+        // Set up player name input
+        if (_playerNameInput != null)
+        {
+            // Set default player name
+            _playerNameInput.text = $"Player {Random.Range(1000, 9999)}";
+            
+            // Subscribe to name changes
+            _playerNameInput.onEndEdit.AddListener(OnPlayerNameChanged);
+        }
     }
-}
 
-// Add this method to LobbyUI
     private void TryGetLobbyManager()
     {
         _lobbyManager = GameServices.Get<NetworkLobbyManager>();
@@ -148,124 +145,124 @@ private void Start()
     /// <summary>
     /// Update the player list UI.
     /// </summary>
-private void UpdatePlayerList()
-{
-    // Additional safety checks
-    if (_lobbyManager == null)
+    private void UpdatePlayerList()
     {
-        Debug.LogWarning("[LobbyUI] Cannot update player list: _lobbyManager is null");
-        return;
-    }
-    
-    if (_playerEntryPrefab == null)
-    {
-        Debug.LogError("[LobbyUI] Cannot update player list: _playerEntryPrefab is null");
-        return;
-    }
-    
-    if (_playerEntriesParent == null)
-    {
-        Debug.LogError("[LobbyUI] Cannot update player list: _playerEntriesParent is null");
-        return;
-    }
-    
-    // Clear existing entries - add safety check for each entry
-    foreach (var entry in _playerEntries)
-    {
-        if (entry != null)
+        // Additional safety checks
+        if (_lobbyManager == null)
         {
-            Destroy(entry);
-        }
-    }
-    _playerEntries.Clear();
-    
-    // Get player info list from lobby manager with safe handling
-    List<NetworkLobbyManager.PlayerInfoNetworkData> players;
-    try
-    {
-        players = _lobbyManager.GetPlayerInfos();
-        if (players == null)
-        {
-            Debug.LogWarning("[LobbyUI] GetPlayerInfos returned null");
+            Debug.LogWarning("[LobbyUI] Cannot update player list: _lobbyManager is null");
             return;
         }
-    }
-    catch (System.Exception e)
-    {
-        Debug.LogError($"[LobbyUI] Error getting player infos: {e.Message}");
-        return;
-    }
-    
-    // Create entry for each player
-    foreach (var player in players)
-    {
+        
+        if (_playerEntryPrefab == null)
+        {
+            Debug.LogError("[LobbyUI] Cannot update player list: _playerEntryPrefab is null");
+            return;
+        }
+        
+        if (_playerEntriesParent == null)
+        {
+            Debug.LogError("[LobbyUI] Cannot update player list: _playerEntriesParent is null");
+            return;
+        }
+        
+        // Clear existing entries - add safety check for each entry
+        foreach (var entry in _playerEntries)
+        {
+            if (entry != null)
+            {
+                Destroy(entry);
+            }
+        }
+        _playerEntries.Clear();
+        
+        // Get player info list from lobby manager with safe handling
+        List<NetworkLobbyManager.PlayerDisplayInfo> players;
         try
         {
-            GameObject entryObj = Instantiate(_playerEntryPrefab, _playerEntriesParent);
-            if (entryObj == null)
+            players = _lobbyManager.GetPlayerInfos();
+            if (players == null)
             {
-                Debug.LogError("[LobbyUI] Failed to instantiate player entry prefab");
-                continue;
+                Debug.LogWarning("[LobbyUI] GetPlayerInfos returned null");
+                return;
             }
-            
-            // Set player name with null checks
-            Transform nameTransform = entryObj.transform.Find("NameText");
-            if (nameTransform != null)
-            {
-                TextMeshProUGUI nameText = nameTransform.GetComponent<TextMeshProUGUI>();
-                if (nameText != null)
-                {
-                    nameText.text = player.PlayerName.ToString();
-                }
-                else
-                {
-                    Debug.LogWarning("[LobbyUI] TextMeshProUGUI component not found on NameText");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[LobbyUI] NameText not found in player entry prefab");
-            }
-            
-            // Set ready status with null checks
-            Transform statusTransform = entryObj.transform.Find("StatusText");
-            if (statusTransform != null)
-            {
-                TextMeshProUGUI statusText = statusTransform.GetComponent<TextMeshProUGUI>();
-                if (statusText != null)
-                {
-                    bool isReady = player.IsReady;
-                    statusText.text = isReady ? "Ready" : "Not Ready";
-                    statusText.color = isReady ? Color.green : Color.red;
-                }
-                else
-                {
-                    Debug.LogWarning("[LobbyUI] TextMeshProUGUI component not found on StatusText");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[LobbyUI] StatusText not found in player entry prefab");
-            }
-            
-            // Highlight local player with null checks
-            if (NetworkManager.Singleton != null && player.ClientId == NetworkManager.Singleton.LocalClientId)
-            {
-                Image background = entryObj.GetComponent<Image>();
-                if (background != null)
-                {
-                    background.color = new Color(0.8f, 0.9f, 1f, 0.7f); // Light blue highlight
-                }
-            }
-            
-            _playerEntries.Add(entryObj);
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[LobbyUI] Error creating player entry: {e.Message}");
+            Debug.LogError($"[LobbyUI] Error getting player infos: {e.Message}");
+            return;
+        }
+        
+        // Create entry for each player
+        foreach (var player in players)
+        {
+            try
+            {
+                GameObject entryObj = Instantiate(_playerEntryPrefab, _playerEntriesParent);
+                if (entryObj == null)
+                {
+                    Debug.LogError("[LobbyUI] Failed to instantiate player entry prefab");
+                    continue;
+                }
+                
+                // Set player name with null checks
+                Transform nameTransform = entryObj.transform.Find("NameText");
+                if (nameTransform != null)
+                {
+                    TextMeshProUGUI nameText = nameTransform.GetComponent<TextMeshProUGUI>();
+                    if (nameText != null)
+                    {
+                        nameText.text = player.PlayerName;
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[LobbyUI] TextMeshProUGUI component not found on NameText");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[LobbyUI] NameText not found in player entry prefab");
+                }
+                
+                // Set ready status with null checks
+                Transform statusTransform = entryObj.transform.Find("StatusText");
+                if (statusTransform != null)
+                {
+                    TextMeshProUGUI statusText = statusTransform.GetComponent<TextMeshProUGUI>();
+                    if (statusText != null)
+                    {
+                        bool isReady = player.IsReady;
+                        statusText.text = isReady ? "Ready" : "Not Ready";
+                        statusText.color = isReady ? Color.green : Color.red;
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[LobbyUI] TextMeshProUGUI component not found on StatusText");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[LobbyUI] StatusText not found in player entry prefab");
+                }
+                
+                // Highlight local player with null checks
+                if (NetworkManager.Singleton != null && player.ClientId == NetworkManager.Singleton.LocalClientId)
+                {
+                    Image background = entryObj.GetComponent<Image>();
+                    if (background != null)
+                    {
+                        background.color = new Color(0.8f, 0.9f, 1f, 0.7f); // Light blue highlight
+                    }
+                }
+                
+                _playerEntries.Add(entryObj);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[LobbyUI] Error creating player entry: {e.Message}");
+            }
         }
     }
-}
     
     /// <summary>
     /// Called when player name is changed.

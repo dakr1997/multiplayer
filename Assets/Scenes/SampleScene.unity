@@ -2560,6 +2560,7 @@ MonoBehaviour:
   _hostButton: {fileID: 803930275}
   _clientButton: {fileID: 1601665066}
   _serverButton: {fileID: 1289513403}
+  _serverIP: 127.0.0.1
 --- !u!114 &759274660
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -2,7 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.Pool;
 using System.Collections.Generic;
-
+using Core.Interfaces;
 public class NetworkObjectPool : NetworkBehaviour
 {
     [System.Serializable]

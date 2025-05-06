@@ -1,7 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections;
-
+using Core.Interfaces;
 public abstract class PoolableNetworkObject : NetworkBehaviour, IPoolable
 {
     private NetworkObjectPool pool;

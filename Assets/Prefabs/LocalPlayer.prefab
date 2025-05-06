@@ -49,11 +49,11 @@ GameObject:
   - component: {fileID: 2050900261553466437}
   - component: {fileID: -4812642097262015697}
   - component: {fileID: -7040602349829137824}
+  - component: {fileID: 1203463416542490968}
   - component: {fileID: 1015184763365141646}
   - component: {fileID: 1005090387922136128}
   - component: {fileID: 5198997713752091062}
   - component: {fileID: 1677799336585110302}
-  - component: {fileID: 1203463416542490968}
   m_Layer: 0
   m_Name: LocalPlayer
   m_TagString: Player
@@ -224,6 +224,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   HUDCanvasPrefab: {fileID: 4895103260644722553, guid: 66e4affe04a972c45af60c62f421f53c, type: 3}
+  initialDelay: 1
+  retryInterval: 0.5
+  maxRetries: 50
 --- !u!114 &2050900261553466437
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -274,6 +277,23 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   expToNextLevel: 100
   levelUpMultiplier: 1.25
+--- !u!114 &1203463416542490968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892764523323301376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2c2c8d3d6939d94dadc1b2de3cb5b6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
+  deathEffectPrefab: {fileID: 0}
+  destroyOnDeath: 1
+  destroyDelay: 2
 --- !u!212 &1015184763365141646
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -407,20 +427,3 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   TransitionStateInfoList: []
   m_Animator: {fileID: 4881445962317876395}
---- !u!114 &1203463416542490968
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7892764523323301376}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2c2c8d3d6939d94dadc1b2de3cb5b6a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  deathEffectPrefab: {fileID: 0}
-  destroyOnDeath: 1
-  destroyDelay: 2

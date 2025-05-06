@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Core.Interfaces;
 public static class DamageHelper
 {
     /// <summary>

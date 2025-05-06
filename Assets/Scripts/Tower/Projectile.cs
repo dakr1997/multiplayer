@@ -1,6 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
-
+using Core.Interfaces;
 public class Projectile : PoolableNetworkObject
 {
     [SerializeField] private LayerMask collisionLayers;

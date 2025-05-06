@@ -1,342 +1,368 @@
-// File: Assets/_Project/Scripts/Core/Lobby/NetworkLobbyManager.cs
-using System;
-using System.Collections.Generic;
-using UnityEngine;
 using Unity.Netcode;
-using Unity.Collections;
+using UnityEngine;
+using System.Collections.Generic;
+using System;
+using UnityEngine.SceneManagement;
+using Core.GameManagement;
 
-/// <summary>
-/// Manages the multiplayer lobby.
-/// </summary>
 public class NetworkLobbyManager : NetworkBehaviour
 {
-    // Player info tracking
-    public class PlayerInfo
+    [SerializeField] private string gameSceneName = "GameScene";
+    [SerializeField] private float readyCountdownDuration = 5f;
+
+    // Network variables for player management
+    private readonly NetworkVariable<float> countdownTimer = new NetworkVariable<float>();
+    private readonly NetworkList<PlayerInfo> players;
+    
+    // Events
+    public event Action<int, int> OnReadyStatusChanged;
+    public event Action<float> OnCountdownTick;
+    public event Action OnCountdownComplete;
+    public event Action OnPlayerListChanged;
+    
+    // This event is for internal use only within the NetworkLobbyManager
+    private event Action GameSceneLoaded;
+    
+    // State
+    private bool countdownActive = false;
+    private bool playerSpawningEnabled = false;
+
+    // Constructor to initialize NetworkList
+    public NetworkLobbyManager()
     {
+        players = new NetworkList<PlayerInfo>();
+    }
+
+    // Player data structure - must be a struct with only value types
+    public struct PlayerInfo : INetworkSerializable, IEquatable<PlayerInfo>
+    {
+        public ulong ClientId;
+        // Using int for name index instead of string
+        public int NameIndex;
+        public bool IsReady;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref ClientId);
+            serializer.SerializeValue(ref NameIndex);
+            serializer.SerializeValue(ref IsReady);
+        }
+
+        public bool Equals(PlayerInfo other)
+        {
+            return ClientId == other.ClientId;
+        }
+    }
+
+    // Create a helper class for UI to use
+    public class PlayerDisplayInfo
+    {
+        public ulong ClientId;
         public string PlayerName;
         public bool IsReady;
     }
 
-    // Network variable to track player readiness
-    private NetworkVariable<int> _playersReady = new NetworkVariable<int>(0, 
-        NetworkVariableReadPermission.Everyone, 
-        NetworkVariableWritePermission.Server);
-    
-    // Network variable to track total players
-    private NetworkVariable<int> _totalPlayers = new NetworkVariable<int>(0,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server);
-    
-    // Network variable for countdown state
-    private NetworkVariable<bool> _countdownActive = new NetworkVariable<bool>(false,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server);
-    
-    // Countdown timer value
-    private NetworkVariable<float> _countdownTimer = new NetworkVariable<float>(10f,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server);
-    
-    // Events
-    public event Action<int, int> OnReadyStatusChanged; // (playersReady, totalPlayers)
-    public event Action<float> OnCountdownTick; // (remainingTime)
-    public event Action OnCountdownComplete;
-    public event Action OnPlayerListChanged;
-    
-    // Dictionary to track player readiness (clientId -> ready)
-    private Dictionary<ulong, bool> _playerReadyStatus = new Dictionary<ulong, bool>();
-    
-    // Dictionary to track player info
-    private Dictionary<ulong, PlayerInfo> _playerInfos = new Dictionary<ulong, PlayerInfo>();
-    
-    // Network list for player info
-    private NetworkList<PlayerInfoNetworkData> _playerInfoList;
-    
-    // Structure for network serialization
-    public struct PlayerInfoNetworkData : INetworkSerializable, IEquatable<PlayerInfoNetworkData>
-    {
-        public ulong ClientId;
-        public FixedString32Bytes PlayerName;
-        public bool IsReady;
-        
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        {
-            serializer.SerializeValue(ref ClientId);
-            serializer.SerializeValue(ref PlayerName);
-            serializer.SerializeValue(ref IsReady);
-        }
-        
-        public bool Equals(PlayerInfoNetworkData other)
-        {
-            return ClientId == other.ClientId && 
-                   PlayerName == other.PlayerName && 
-                   IsReady == other.IsReady;
-        }
-    }
-    
-    // Reference to the game state manager
-    private GameStateManager _gameStateManager;
-    
+    // Local dictionary to store player names (not networked)
+    private Dictionary<ulong, string> playerNames = new Dictionary<ulong, string>();
+
     private void Awake()
     {
-        // Initialize network list
-        _playerInfoList = new NetworkList<PlayerInfoNetworkData>();
+        // Apply DontDestroyOnLoad
+        DontDestroyOnLoad(gameObject);
     }
-    
+
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkSpawn();
-        
         // Register with service locator
         GameServices.Register<NetworkLobbyManager>(this);
         
-        // Find game state manager
-        _gameStateManager = GameServices.Get<GameStateManager>();
-        
         // Subscribe to network variable changes
-        _playersReady.OnValueChanged += (oldValue, newValue) => OnReadyStatusChanged?.Invoke(newValue, _totalPlayers.Value);
-        _totalPlayers.OnValueChanged += (oldValue, newValue) => OnReadyStatusChanged?.Invoke(_playersReady.Value, newValue);
-        _playerInfoList.OnListChanged += OnPlayerInfoListChanged;
+        players.OnListChanged += HandlePlayerListChanged;
+        countdownTimer.OnValueChanged += HandleCountdownTimerChanged;
         
-        // If we're the server, initialize player count
-        if (IsServer)
-        {
-            _totalPlayers.Value = NetworkManager.Singleton.ConnectedClientsIds.Count;
-        }
+        // Subscribe to scene events
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoadCompleted;
+        
+        Debug.Log("NetworkLobbyManager initialized");
     }
     
-    private void Update()
+    // Handle scene load completion
+    private void OnSceneLoadCompleted(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
     {
-        // Only server updates the countdown timer
-        if (IsServer && _countdownActive.Value)
+        // Check if this is the game scene
+        if (sceneName == gameSceneName)
         {
-            // Update countdown timer
-            _countdownTimer.Value -= Time.deltaTime;
-            OnCountdownTick?.Invoke(_countdownTimer.Value);
-            
-            // Check if countdown is complete
-            if (_countdownTimer.Value <= 0)
-            {
-                _countdownActive.Value = false;
-                OnCountdownComplete?.Invoke();
-                
-                // Start the game
-                _gameStateManager.ChangeState(GameStateType.Wave);
-            }
+            Debug.Log("Game scene loaded - enabling player spawning");
+            playerSpawningEnabled = true;
+            GameSceneLoaded?.Invoke();
         }
     }
     
-    /// <summary>
-    /// Called by a client to toggle their ready status.
-    /// </summary>
-    [ServerRpc(RequireOwnership = false)]
-    public void TogglePlayerReadyServerRpc(ulong clientId)
+    // Public method to register for game scene loaded notifications
+    public void RegisterGameSceneLoadedCallback(Action callback)
     {
-        // Toggle ready status for this player
-        if (!_playerReadyStatus.ContainsKey(clientId))
+        if (callback != null)
         {
-            _playerReadyStatus[clientId] = true;
+            GameSceneLoaded += callback;
         }
-        else
-        {
-            _playerReadyStatus[clientId] = !_playerReadyStatus[clientId];
-        }
-        
-        // Update player info
-        if (_playerInfos.ContainsKey(clientId))
-        {
-            _playerInfos[clientId].IsReady = _playerReadyStatus[clientId];
-            UpdatePlayerInfoList();
-        }
-        
-        // Count ready players
-        int readyCount = 0;
-        foreach (var status in _playerReadyStatus.Values)
-        {
-            if (status) readyCount++;
-        }
-        
-        // Update network variable
-        _playersReady.Value = readyCount;
-        
-        // Check if all players are ready
-        CheckForGameStart();
     }
     
-    /// <summary>
-    /// Set player name
-    /// </summary>
-    [ServerRpc(RequireOwnership = false)]
-    public void SetPlayerNameServerRpc(ulong clientId, string playerName)
+    // Public method to unregister from game scene loaded notifications
+    public void UnregisterGameSceneLoadedCallback(Action callback)
     {
-        if (!_playerInfos.ContainsKey(clientId))
+        if (callback != null)
         {
-            _playerInfos[clientId] = new PlayerInfo
-            {
-                PlayerName = playerName,
-                IsReady = false
-            };
-        }
-        else
-        {
-            _playerInfos[clientId].PlayerName = playerName;
-        }
-        
-        UpdatePlayerInfoList();
-    }
-    
-    /// <summary>
-    /// Check if all players are ready to start the game.
-    /// </summary>
-    private void CheckForGameStart()
-    {
-        if (IsServer && _playersReady.Value == _totalPlayers.Value && _totalPlayers.Value >= 1)
-        {
-            // All players are ready, start countdown
-            StartCountdown();
+            GameSceneLoaded -= callback;
         }
     }
     
-    /// <summary>
-    /// Called when a new player connects.
-    /// </summary>
+    // Called when a player connects
     public void PlayerConnected(ulong clientId)
-    {
-        if (IsServer)
-        {
-            // Update total players
-            _totalPlayers.Value = NetworkManager.Singleton.ConnectedClientsIds.Count;
-            
-            // Add new player to ready status dictionary (not ready by default)
-            if (!_playerReadyStatus.ContainsKey(clientId))
-            {
-                _playerReadyStatus[clientId] = false;
-            }
-            
-            // Add player info
-            if (!_playerInfos.ContainsKey(clientId))
-            {
-                _playerInfos[clientId] = new PlayerInfo
-                {
-                    PlayerName = $"Player {clientId}",
-                    IsReady = false
-                };
-                
-                UpdatePlayerInfoList();
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Called when a player disconnects.
-    /// </summary>
-    public void PlayerDisconnected(ulong clientId)
-    {
-        if (IsServer)
-        {
-            // Remove player from ready status
-            if (_playerReadyStatus.ContainsKey(clientId))
-            {
-                bool wasReady = _playerReadyStatus[clientId];
-                _playerReadyStatus.Remove(clientId);
-                
-                // Update ready count if needed
-                if (wasReady)
-                {
-                    _playersReady.Value--;
-                }
-            }
-            
-            // Remove player info
-            if (_playerInfos.ContainsKey(clientId))
-            {
-                _playerInfos.Remove(clientId);
-                UpdatePlayerInfoList();
-            }
-            
-            // Update total players
-            _totalPlayers.Value = NetworkManager.Singleton.ConnectedClientsIds.Count;
-        }
-    }
-    
-    /// <summary>
-    /// Update the player info list
-    /// </summary>
-    private void UpdatePlayerInfoList()
     {
         if (!IsServer) return;
         
-        _playerInfoList.Clear();
-        foreach (var kvp in _playerInfos)
+        // Store default name locally
+        string defaultName = $"Player {clientId}";
+        playerNames[clientId] = defaultName;
+        
+        // Add player to networked list (with only value types)
+        var playerInfo = new PlayerInfo
         {
-            _playerInfoList.Add(new PlayerInfoNetworkData
+            ClientId = clientId,
+            NameIndex = (int)clientId, // Just use ID as name index
+            IsReady = false
+        };
+        
+        players.Add(playerInfo);
+        
+        Debug.Log($"Player added to lobby: {clientId}");
+    }
+    
+    // Called when a player disconnects
+    public void PlayerDisconnected(ulong clientId)
+    {
+        if (!IsServer) return;
+        
+        // Remove player from list
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].ClientId == clientId)
             {
-                ClientId = kvp.Key,
-                PlayerName = new FixedString32Bytes(kvp.Value.PlayerName),
-                IsReady = kvp.Value.IsReady
-            });
+                players.RemoveAt(i);
+                Debug.Log($"Player removed from lobby: {clientId}");
+                break;
+            }
+        }
+        
+        // Remove from names dictionary
+        if (playerNames.ContainsKey(clientId))
+        {
+            playerNames.Remove(clientId);
+        }
+        
+        // If countdown is active, check if we should cancel it
+        CheckAndUpdateCountdown();
+    }
+    
+    // Set player name (called by client, executed on server)
+    [ServerRpc(RequireOwnership = false)]
+    public void SetPlayerNameServerRpc(ulong clientId, string playerName)
+    {
+        // Store name in dictionary
+        playerNames[clientId] = playerName;
+        
+        // No need to update networked list since we're tracking names separately
+        Debug.Log($"Player {clientId} renamed to {playerName}");
+        
+        // Notify all clients of the player list change
+        OnPlayerListChanged?.Invoke();
+    }
+    
+    // Toggle player ready status (called by client, executed on server)
+    [ServerRpc(RequireOwnership = false)]
+    public void TogglePlayerReadyServerRpc(ulong clientId)
+    {
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].ClientId == clientId)
+            {
+                var playerInfo = players[i];
+                playerInfo.IsReady = !playerInfo.IsReady;
+                players[i] = playerInfo;
+                
+                Debug.Log($"Player {clientId} ready status toggled to {playerInfo.IsReady}");
+                break;
+            }
+        }
+        
+        // Check if we should start/stop the countdown
+        CheckAndUpdateCountdown();
+    }
+    
+    // Update the countdown based on player ready status
+    private void CheckAndUpdateCountdown()
+    {
+        if (!IsServer) return;
+        
+        int readyCount = 0;
+        int totalPlayers = players.Count;
+        
+        // Count ready players
+        foreach (var player in players)
+        {
+            if (player.IsReady) readyCount++;
+        }
+        
+        // Broadcast ready status
+        NotifyReadyStatusChanged(readyCount, totalPlayers);
+        
+        // Check if all players are ready
+        bool allReady = readyCount > 0 && readyCount == totalPlayers;
+        
+        // Start or stop countdown
+        if (allReady && !countdownActive)
+        {
+            // Start countdown
+            countdownActive = true;
+            countdownTimer.Value = readyCountdownDuration;
+            Debug.Log("All players ready, countdown started");
+        }
+        else if (!allReady && countdownActive)
+        {
+            // Cancel countdown
+            countdownActive = false;
+            countdownTimer.Value = 0;
+            Debug.Log("Countdown cancelled - not all players ready");
         }
     }
     
-    /// <summary>
-    /// Handle player info list changes
-    /// </summary>
-    private void OnPlayerInfoListChanged(NetworkListEvent<PlayerInfoNetworkData> changeEvent)
+    // Update countdown timer
+    private void Update()
+    {
+        if (IsServer && countdownActive)
+        {
+            countdownTimer.Value -= Time.deltaTime;
+            
+            if (countdownTimer.Value <= 0)
+            {
+                countdownActive = false;
+                HandleCountdownComplete();
+            }
+        }
+    }
+    
+    // Handle timer change (for clients)
+    private void HandleCountdownTimerChanged(float oldValue, float newValue)
+    {
+        OnCountdownTick?.Invoke(newValue);
+    }
+    
+    // Handle player list changes
+    private void HandlePlayerListChanged(NetworkListEvent<PlayerInfo> changeEvent)
     {
         OnPlayerListChanged?.Invoke();
     }
     
-    /// <summary>
-    /// Start the countdown to begin the game.
-    /// </summary>
-    private void StartCountdown()
+    // Notify listeners about ready status
+    private void NotifyReadyStatusChanged(int readyCount, int totalPlayers)
     {
-        if (IsServer)
-        {
-            _countdownTimer.Value = 10f; // 10 seconds countdown
-            _countdownActive.Value = true;
-        }
+        OnReadyStatusChanged?.Invoke(readyCount, totalPlayers);
     }
     
-    /// <summary>
-    /// Cancel the countdown if needed.
-    /// </summary>
-    public void CancelCountdown()
+    // Handle countdown complete
+    private void HandleCountdownComplete()
     {
-        if (IsServer)
-        {
-            _countdownActive.Value = false;
-        }
+        OnCountdownComplete?.Invoke();
+        StartGame();
     }
     
-    /// <summary>
-    /// Get player info list
-    /// </summary>
-    public List<PlayerInfoNetworkData> GetPlayerInfos()
+    // Start the game by loading the game scene
+    public void StartGame()
     {
-        // Create a new list with all the network list items
-        List<PlayerInfoNetworkData> list = new List<PlayerInfoNetworkData>();
-        foreach (var item in _playerInfoList)
-        {
-            list.Add(item);
-        }
-        return list;
+        if (!IsServer) return;
+        
+        Debug.Log("Starting game - loading game scene");
+        
+        // Reset spawn flag - players will be spawned only after the game scene loads
+        playerSpawningEnabled = false;
+        
+        // Load the game scene for all clients
+        NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
     }
     
-    // Public properties
-    public bool IsCountdownActive => _countdownActive.Value;
-    public float CountdownTime => _countdownTimer.Value;
-    public int PlayersReady => _playersReady.Value;
-    public int TotalPlayers => _totalPlayers.Value;
+    // Get player infos for UI
+    public List<PlayerDisplayInfo> GetPlayerInfos()
+    {
+        List<PlayerDisplayInfo> result = new List<PlayerDisplayInfo>();
+        
+        foreach (var player in players)
+        {
+            string name = "Unknown Player";
+            if (playerNames.TryGetValue(player.ClientId, out string storedName))
+            {
+                name = storedName;
+            }
+            
+            result.Add(new PlayerDisplayInfo
+            {
+                ClientId = player.ClientId,
+                PlayerName = name,
+                IsReady = player.IsReady
+            });
+        }
+        
+        return result;
+    }
+    
+    // Check if player spawning is currently enabled
+    public bool IsPlayerSpawningEnabled()
+    {
+        return playerSpawningEnabled;
+    }
+    
+    public void SpawnPlayersInGameScene()
+    {
+        // This method will be empty - it's just for the callback
+        // The actual spawning is handled by GameInitializer
+        Debug.Log("NetworkLobbyManager: Game scene loaded event triggered");
+    }
+
+    // Get the player data for spawning
+    public List<ulong> GetConnectedClientIds()
+    {
+        List<ulong> clientIds = new List<ulong>();
+        foreach (var player in players)
+        {
+            clientIds.Add(player.ClientId);
+        }
+        return clientIds;
+    }
+    
+    // Get player name by client ID
+    public string GetPlayerName(ulong clientId)
+    {
+        if (playerNames.TryGetValue(clientId, out string name))
+        {
+            return name;
+        }
+        return $"Player {clientId}";
+    }
     
     public override void OnNetworkDespawn()
     {
-        base.OnNetworkDespawn();
-        
         // Unsubscribe from events
-        _playerInfoList.OnListChanged -= OnPlayerInfoListChanged;
+        players.OnListChanged -= HandlePlayerListChanged;
+        countdownTimer.OnValueChanged -= HandleCountdownTimerChanged;
+        
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+        {
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnSceneLoadCompleted;
+        }
         
         // Unregister from service locator
         GameServices.Unregister<NetworkLobbyManager>();
     }
+
+
+
 }

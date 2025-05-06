@@ -3,6 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Core.Towers.MainTower;
+using Core.Components;
 
 public class PlayerHUDController : MonoBehaviour
 {
@@ -15,7 +17,7 @@ public class PlayerHUDController : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private Vector3 floatingTextOffset = new Vector3(0, 50, 0);
 
-    public void Initialize(HealthComponent health, PlayerExperience exp, MainTowerHP tower)
+    public void Initialize(HealthComponent health = null, PlayerExperience exp = null, MainTowerHP tower = null)
     {
         if (health != null)
         {
@@ -38,9 +40,19 @@ public class PlayerHUDController : MonoBehaviour
 
         if (tower != null)
         {
-            // Listen directly to NetworkVariable changes
+            // Use the tower instance provided
             tower.OnHealthChanged += (current, max) => UpdateTowerHealth(current, max);
             UpdateTowerHealth(tower.CurrentHealth, tower.MaxHealth);
+        }
+        else if (MainTowerHP.Instance != null)
+        {
+            // Try to find the tower instance through singleton
+            MainTowerHP.Instance.OnHealthChanged += (current, max) => UpdateTowerHealth(current, max);
+            UpdateTowerHealth(MainTowerHP.Instance.CurrentHealth, MainTowerHP.Instance.MaxHealth);
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerHUDController] No tower found or provided!");
         }
     }
 

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Unity.Netcode.Transports.UTP;
-
+using Core.GameManagement;
 public class JoinMenu : MonoBehaviour
 {
     [SerializeField] private GameObject _menuPanel;
@@ -165,17 +165,6 @@ public class JoinMenu : MonoBehaviour
     private void OnClientConnected(ulong clientId)
     {
         Debug.Log($"Client connected: {clientId}");
-        
-        // Notify the lobby manager about the new player
-        var lobbyManager = GameServices.Get<NetworkLobbyManager>();
-        if (lobbyManager != null)
-        {
-            lobbyManager.PlayerConnected(clientId);
-        }
-        else
-        {
-            Debug.LogWarning("NetworkLobbyManager not found when client connected!");
-        }
     }
     
     private void OnClientDisconnected(ulong clientId)
