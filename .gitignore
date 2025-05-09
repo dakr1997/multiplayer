@@ -5,10 +5,7 @@
 [Bb]uilds/
 [Ll]ogs/
 [Uu]serSettings/
-/Library
-/obj
-/Temp
-/Build
+
 .vs/
 .vscode/
 *.csproj
@@ -35,3 +32,6 @@
 *.apk
 *.aab
 *.exe
+
+# Crashlytics
+crashlytics-build.properties
