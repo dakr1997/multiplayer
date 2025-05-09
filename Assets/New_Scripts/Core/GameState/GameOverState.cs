@@ -26,9 +26,7 @@ namespace Core.GameState
             {
                 // Check if this was a victory or defeat
                 isVictory = gameManager.IsVictory();
-                
-                // Show appropriate UI
-                ShowGameOverUI(isVictory);
+                Debug.Log($"Game over state determined: {(isVictory ? "Victory!" : "Defeat!")}");
             }
             else
             {
@@ -39,9 +37,6 @@ namespace Core.GameState
         public override void Exit()
         {
             Debug.Log("Exiting GameOver State");
-            
-            // Hide game over UI
-            HideGameOverUI();
         }
         
         public override void Update()
@@ -73,30 +68,6 @@ namespace Core.GameState
                 // Fallback to direct state change
                 StateManager.ChangeState(GameStateType.Lobby);
             }
-        }
-        
-        /// <summary>
-        /// Show the game over UI with appropriate victory/defeat message
-        /// </summary>
-        private void ShowGameOverUI(bool victory)
-        {
-            // Implementation depends on your UI system
-            Debug.Log($"Showing game over UI: {(victory ? "Victory!" : "Defeat!")}");
-            
-            // TODO: Implement UI activation based on your UI system
-            // Example: GameOverPanel.Show(victory);
-        }
-        
-        /// <summary>
-        /// Hide the game over UI
-        /// </summary>
-        private void HideGameOverUI()
-        {
-            // Implementation depends on your UI system
-            Debug.Log("Hiding game over UI");
-            
-            // TODO: Implement UI deactivation based on your UI system
-            // Example: GameOverPanel.Hide();
         }
     }
 }

@@ -1,5 +1,5 @@
 # Unity Project Summary
-Generated on: 2025-05-06 22:50:35
+Generated on: 2025-05-09 15:47:28
 Project: My project
 Version: 1.0
 
@@ -8,7 +8,7 @@ Key project folders:
 - Editor
   - Contains 2 scripts
 - New_Scripts
-  - Contains 34 scripts
+  - Contains 35 scripts
   - Core
   - Enemies
   - UI
@@ -42,8 +42,8 @@ Key project folders:
 - UI
 
 ## Code Analysis
-Total scripts: 56
-- MonoBehaviour scripts: 13
+Total scripts: 57
+- MonoBehaviour scripts: 14
 - ScriptableObject scripts: 3
 - Interfaces: 2
 - Static classes: 2
@@ -56,13 +56,13 @@ Total scripts: 56
   - PlayerMovement
   - ProjectileSpawner
   - ...and 16 more
-- MonoBehaviour: 13 implementations
+- MonoBehaviour: 14 implementations
   - CodeSummarizer
   - EnemyManager
+  - GameOverUI
   - JoinMenu
   - LobbyUI
-  - PlayerCameraFollow_Smooth
-  - ...and 8 more
+  - ...and 9 more
 - GameState: 4 implementations
   - BuildingState
   - GameOverState
@@ -78,10 +78,10 @@ Total scripts: 56
   - PoolableEnemy
 
 ### Most referenced classes:
-- TextMeshProUGUI: referenced by 3 classes
+- TextMeshProUGUI: referenced by 4 classes
+- Button: referenced by 3 classes
 - EnemyData: referenced by 3 classes
 - TMP_InputField: referenced by 2 classes
-- Button: referenced by 2 classes
 - LayerMask: referenced by 2 classes
 - NetworkObject: referenced by 2 classes
 - Slider: referenced by 1 classes
@@ -90,36 +90,24 @@ Total scripts: 56
 - TowerData: referenced by 1 classes
 
 ## Recent Changes
-Files modified in the last 7 days:
-- Assets\New_Scripts\Core\Lobby\NetworkLobbyManager.cs (modified 2025-05-06)
-- Assets\Scripts\Player\PlayerClientHandler.cs (modified 2025-05-06)
-- Assets\New_Scripts\Core\Network\SceneBasedPlayerSpawner.cs (modified 2025-05-06)
-- Assets\New_Scripts\Core\Lobby\GameSceneInitializer.cs (modified 2025-05-06)
-- Assets\New_Scripts\Core\GameManagement\GameInitializer.cs (modified 2025-05-06)
-- Assets\New_Scripts\UI\JoinMenu.cs (modified 2025-05-06)
-- Assets\Scripts\Player\PlayerHUDController.cs (modified 2025-05-06)
-- Assets\New_Scripts\Core\Towers\Tower.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Network\ClientPrediction.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Player\Base\PlayerEntity.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Player\Classes\Archer\ArcherComponent.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Player\Classes\Warrior\WarriorComponent.cs (modified 2025-05-05)
-- Assets\New_Scripts\Enemies\Base\EnemyEntity.cs (modified 2025-05-05)
-- Assets\New_Scripts\Enemies\Base\PoolableEnemy.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Network\NetworkedEntity.cs (modified 2025-05-05)
-- Assets\New_Scripts\Core\Entities\GameEntity.cs (modified 2025-05-05)
-- Assets\Scripts\Tower\Projectile.cs (modified 2025-05-05)
-- Assets\Scripts\NetworkHelper\Pools\NetworkObjectPool.cs (modified 2025-05-05)
-- Assets\Scripts\NetworkHelper\DamageHelper.cs (modified 2025-05-05)
-- Assets\Scripts\NetworkHelper\Pools\PoolableNetworkObject.cs (modified 2025-05-05)
-- ...and 29 more files
+Files modified in the last 1 days:
+- Assets\New_Scripts\UI\JoinMenu.cs (modified 2025-05-09)
+- Assets\New_Scripts\UI\LobbyUI.cs (modified 2025-05-09)
+- Assets\New_Scripts\Core\Lobby\NetworkLobbyManager.cs (modified 2025-05-09)
+- Assets\New_Scripts\UI\GameOverUI.cs (modified 2025-05-09)
+- Assets\New_Scripts\Core\GameManagement\GameManager.cs (modified 2025-05-09)
+- Assets\Scripts\Player\PlayerClientHandler.cs (modified 2025-05-09)
+- Assets\New_Scripts\Core\GameState\GameOverState.cs (modified 2025-05-09)
+- Assets\New_Scripts\Core\GameManagement\GameInitializer.cs (modified 2025-05-09)
+- Assets\New_Scripts\Core\GameState\GameStateManager.cs (modified 2025-05-09)
+- Assets\New_Scripts\Core\GameState\GameStateType.cs (modified 2025-05-09)
+- Assets\New_Scripts\Core\Towers\MainTower\MainTowerHP.cs (modified 2025-05-09)
 
 ## TODO Items
 - [CodeSummarizer.cs] items
 - [CodeSummarizer.cs] comments
 - [CodeSummarizer.cs] */ style comments
             todoMatches = Regex.Matches(content, @"/\*\s*TODO:?\s*(.+?)\
-- [GameOverState.cs] Implement UI activation based on your UI system
-- [GameOverState.cs] Implement UI deactivation based on your UI system
 
 ## Class Diagram
 ```mermaid
@@ -149,6 +137,15 @@ classDiagram
     +GetActiveEnemyCount()
   }
   MonoBehaviour <|-- EnemyManager
+  class GameOverUI {
+    +MonoBehaviour
+    +SetResult()
+    +Show()
+    +Hide()
+  }
+  MonoBehaviour <|-- GameOverUI
+  GameOverUI --> TextMeshProUGUI : references
+  GameOverUI --> Button : references
   class JoinMenu {
     +MonoBehaviour
   }
@@ -172,10 +169,12 @@ classDiagram
   }
   class ExpBubble {
     +Initialize()
+    +DebugPickup()
   }
   PoolableNetworkObject <|-- ExpBubble
   class PlayerClientHandler {
     +Initialize()
+    +ShowGameOverUIDirectly()
   }
   NetworkBehaviour <|-- PlayerClientHandler
   class PlayerDamage {
@@ -238,7 +237,10 @@ classDiagram
   class GameManager {
     +ConnectWaveManager()
     +ConnectMainTower()
+    +OnMainTowerDestroyed()
     +StartGame()
+    +ReturnToLobby()
+    +RequestReturnToLobbyServerRpc()
     +EndGame()
     +GetCurrentWave()
     +GetGameTime()
@@ -262,6 +264,8 @@ classDiagram
   }
   class GameStateManager {
     +ChangeState()
+    +ForceStateChange()
+    +GetGameOverState()
   }
   NetworkBehaviour <|-- GameStateManager
   class LobbyState {
@@ -298,6 +302,8 @@ classDiagram
     +IsPlayerSpawningEnabled()
     +SpawnPlayersInGameScene()
     +GetPlayerName()
+    +DisconnectAndResetGame()
+    +RequestReturnToLobbyServerRpc()
   }
   NetworkBehaviour <|-- NetworkLobbyManager
   class ClientPrediction {

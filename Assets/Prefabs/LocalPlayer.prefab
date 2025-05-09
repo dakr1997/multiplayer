@@ -224,6 +224,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   HUDCanvasPrefab: {fileID: 4895103260644722553, guid: 66e4affe04a972c45af60c62f421f53c, type: 3}
+  GameOverCanvasPrefab: {fileID: 8223861329395229967, guid: 6bd4febe9825a024da1df6a532087f24, type: 3}
   initialDelay: 1
   retryInterval: 0.5
   maxRetries: 50

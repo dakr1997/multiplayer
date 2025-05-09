@@ -72,11 +72,52 @@ namespace Core.GameState
         {
             if (!IsServer)
             {
-                Debug.LogWarning("Only the server can change game state!");
+                Debug.LogWarning("[GameStateManager] Only the server can change game state!");
                 return;
             }
             
+            if (_networkGameState.Value == newState)
+            {
+                Debug.Log($"[GameStateManager] Already in state {newState}, ignoring change request");
+                return;
+            }
+            
+            Debug.Log($"[GameStateManager] Changing state from {_networkGameState.Value} to {newState}");
+            
+            // Force exit current state
+            if (_currentState != null)
+            {
+                Debug.Log($"[GameStateManager] Forcing exit of current state: {_networkGameState.Value}");
+                _currentState.Exit();
+            }
+            
             // Update network variable to synchronize with clients
+            _networkGameState.Value = newState;
+            
+            // Apply the state change locally
+            UpdateStateFromNetwork(newState);
+        }
+        
+        /// <summary>
+        /// Force state change even if already in that state (used for recovery)
+        /// </summary>
+        public void ForceStateChange(GameStateType newState)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("[GameStateManager] Only the server can force state change!");
+                return;
+            }
+            
+            Debug.Log($"[GameStateManager] FORCE changing state to {newState}");
+            
+            // Force exit current state
+            if (_currentState != null)
+            {
+                _currentState.Exit();
+            }
+            
+            // Set state directly first to ensure change
             _networkGameState.Value = newState;
             
             // Apply the state change locally
@@ -100,8 +141,14 @@ namespace Core.GameState
         /// </summary>
         private void UpdateStateFromNetwork(GameStateType stateType)
         {
+            Debug.Log($"[GameStateManager] UpdateStateFromNetwork: {stateType}");
+            
             // Exit current state if it exists
-            _currentState?.Exit();
+            if (_currentState != null)
+            {
+                Debug.Log($"[GameStateManager] Exiting current state: {_currentState.GetType().Name}");
+                _currentState.Exit();
+            }
             
             // Set new state
             switch (stateType)
@@ -121,12 +168,21 @@ namespace Core.GameState
             }
             
             // Enter new state
+            Debug.Log($"[GameStateManager] Entering new state: {_currentState.GetType().Name}");
             _currentState.Enter();
             
             // Trigger event
             OnGameStateChanged?.Invoke(stateType);
             
-            Debug.Log($"Game state changed to {stateType}");
+            Debug.Log($"[GameStateManager] State successfully changed to {stateType}");
+        }
+        
+        /// <summary>
+        /// Get the GameOverState for direct access
+        /// </summary>
+        public GameOverState GetGameOverState()
+        {
+            return _gameOverState;
         }
         
         public override void OnNetworkDespawn()

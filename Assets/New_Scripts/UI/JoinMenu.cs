@@ -4,9 +4,11 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Netcode.Transports.UTP;
 using Core.GameManagement;
+
 public class JoinMenu : MonoBehaviour
 {
     [SerializeField] private GameObject _menuPanel;
+    [SerializeField] private GameObject _lobbyPanel; // Reference to the lobby panel
     [SerializeField] private TMP_InputField _ipInputField;
     [SerializeField] private Button _hostButton;
     [SerializeField] private Button _clientButton;
@@ -14,6 +16,8 @@ public class JoinMenu : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _statusText;
     
     private string _serverIP = "127.0.0.1"; // Default to localhost
+    private bool _isConnected = false;
+    private float _connectionCheckTimer = 0f;
     
     private void Awake()
     {
@@ -45,6 +49,29 @@ public class JoinMenu : MonoBehaviour
         {
             // Try again later
             Invoke("TrySubscribeToNetworkEvents", 0.5f);
+        }
+        
+        // Make sure the lobby panel is initially hidden
+        if (_lobbyPanel != null)
+        {
+            _lobbyPanel.SetActive(false);
+        }
+    }
+    
+    private void Update()
+    {
+        // Check for successful client connection
+        if (!_isConnected && NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient)
+        {
+            _connectionCheckTimer += Time.deltaTime;
+            
+            // If we've been connected for a bit without seeing the callback, force show lobby
+            if (_connectionCheckTimer > 3.0f && NetworkManager.Singleton.IsConnectedClient)
+            {
+                Debug.Log("Connection detected, showing lobby UI");
+                ShowLobbyUI();
+                _isConnected = true;
+            }
         }
     }
     
@@ -93,6 +120,8 @@ public class JoinMenu : MonoBehaviour
         SetTransportIP();
         NetworkManager.Singleton.StartHost();
         HideMenu();
+        ShowLobbyUI();
+        _isConnected = true;
     }
     
     private void OnClientButtonClicked()
@@ -106,6 +135,10 @@ public class JoinMenu : MonoBehaviour
         SetTransportIP();
         NetworkManager.Singleton.StartClient();
         HideMenu();
+        
+        // Reset connection timer - we'll show lobby UI when connection is confirmed
+        _connectionCheckTimer = 0f;
+        _isConnected = false;
     }
     
     private void OnServerButtonClicked()
@@ -119,6 +152,8 @@ public class JoinMenu : MonoBehaviour
         SetTransportIP();
         NetworkManager.Singleton.StartServer();
         HideMenu();
+        ShowLobbyUI();
+        _isConnected = true;
     }
     
     private void SetTransportIP()
@@ -151,6 +186,36 @@ public class JoinMenu : MonoBehaviour
         if (_menuPanel) _menuPanel.SetActive(true);
     }
     
+    private void ShowLobbyUI()
+    {
+        // Try to find lobby panel if not assigned
+        if (_lobbyPanel == null)
+        {
+            _lobbyPanel = GameObject.Find("LobbyPanel");
+            
+            if (_lobbyPanel == null)
+            {
+                // Look for it in specific parent canvases
+                Transform parentCanvas = GameObject.Find("LoginCanvas")?.transform;
+                if (parentCanvas != null)
+                {
+                    _lobbyPanel = parentCanvas.Find("LobbyPanel")?.gameObject;
+                }
+            }
+        }
+        
+        // Activate lobby panel
+        if (_lobbyPanel != null)
+        {
+            _lobbyPanel.SetActive(true);
+            Debug.Log("Lobby panel activated");
+        }
+        else
+        {
+            Debug.LogError("Could not find LobbyPanel to activate!");
+        }
+    }
+    
     private void UpdateStatus()
     {
         if (_statusText == null) return;
@@ -165,6 +230,14 @@ public class JoinMenu : MonoBehaviour
     private void OnClientConnected(ulong clientId)
     {
         Debug.Log($"Client connected: {clientId}");
+        
+        // If this is the local client that connected
+        if (clientId == NetworkManager.Singleton.LocalClientId)
+        {
+            Debug.Log("Local client connected, showing lobby UI");
+            ShowLobbyUI();
+            _isConnected = true;
+        }
     }
     
     private void OnClientDisconnected(ulong clientId)
@@ -176,6 +249,15 @@ public class JoinMenu : MonoBehaviour
         if (lobbyManager != null)
         {
             lobbyManager.PlayerDisconnected(clientId);
+        }
+        
+        // If this is the local client, show connection menu again
+        if (clientId == NetworkManager.Singleton.LocalClientId)
+        {
+            Debug.Log("Local client disconnected, showing connection menu");
+            if (_lobbyPanel != null) _lobbyPanel.SetActive(false);
+            ShowMenu();
+            _isConnected = false;
         }
     }
 }

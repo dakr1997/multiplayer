@@ -71,6 +71,22 @@ namespace Core.GameManagement
             
             // Find references to other systems
             FindAndConnectSystems();
+            
+            // Subscribe to tower destroyed event immediately
+            MainTowerHP.OnTowerDestroyed += HandleMainTowerDestroyed;
+        }
+        
+        private void Start()
+        {
+            // Double-check that we're connected to MainTowerHP
+            if (mainTower == null)
+            {
+                mainTower = FindObjectOfType<MainTowerHP>();
+                if (mainTower != null)
+                {
+                    ConnectMainTower(mainTower);
+                }
+            }
         }
         
         private void FindAndConnectSystems()
@@ -160,8 +176,24 @@ namespace Core.GameManagement
             
             Debug.Log("[GameManager] Connected to MainTower");
             
-            // Subscribe to tower destruction event - using static event from MainTowerHP
+            // Make sure we're subscribed to the tower destroyed event
+            MainTowerHP.OnTowerDestroyed -= HandleMainTowerDestroyed; // Prevent duplicate subscription
             MainTowerHP.OnTowerDestroyed += HandleMainTowerDestroyed;
+            
+            Debug.Log("[GameManager] Subscribed to MainTower.OnTowerDestroyed event");
+        }
+        
+        /// <summary>
+        /// Public method to be called directly when tower is destroyed
+        /// </summary>
+        public void OnMainTowerDestroyed()
+        {
+            if (!IsServer) return;
+            
+            Debug.Log("[GameManager] OnMainTowerDestroyed called directly");
+            
+            // End game with defeat
+            EndGame(false);
         }
         
         #region State Management
@@ -203,6 +235,9 @@ namespace Core.GameManagement
                 isGameActive.Value = false;
                 isVictory.Value = false;
             }
+            
+            // Re-enable player controls on all clients
+            EnablePlayerControlsClientRpc();
         }
         
         private void HandleBuildingState()
@@ -258,6 +293,16 @@ namespace Core.GameManagement
         {
             Debug.Log($"[GameManager] Game over! Victory: {isVictory.Value}");
             
+            // Stop any running coroutines
+            if (buildingPhaseCoroutine != null)
+            {
+                StopCoroutine(buildingPhaseCoroutine);
+                buildingPhaseCoroutine = null;
+            }
+            
+            // Show GameOverUI on all clients
+            ShowGameOverUIClientRpc(isVictory.Value);
+            
             // Notify listeners
             OnGameEnded?.Invoke(isVictory.Value);
         }
@@ -280,6 +325,12 @@ namespace Core.GameManagement
             gameTime.Value = 0;
             isGameActive.Value = true;
             
+            // Make sure tower is reset if needed
+            if (mainTower != null)
+            {
+                mainTower.Reset();
+            }
+            
             // Change to building state to begin the game
             if (stateManager != null)
             {
@@ -291,8 +342,64 @@ namespace Core.GameManagement
         }
         
         /// <summary>
-        /// End the game with a win or loss
+        /// Return to lobby - called from GameOverUI
         /// </summary>
+/// <summary>
+/// Return to lobby - called from GameOverUI
+/// </summary>
+    public void ReturnToLobby()
+    {
+        Debug.Log("[GameManager] Return to lobby requested");
+        
+        // If client, request server to handle return to lobby
+        if (!IsServer) 
+        {
+            Debug.Log("[GameManager] Client requesting server to return to lobby");
+            RequestReturnToLobbyServerRpc();
+            return;
+        }
+        
+        // Get the NetworkLobbyManager to handle clean disconnect and scene transition
+        NetworkLobbyManager lobbyManager = GameServices.Get<NetworkLobbyManager>();
+        if (lobbyManager != null)
+        {
+            Debug.Log("[GameManager] Found NetworkLobbyManager, calling DisconnectAndResetGame");
+            lobbyManager.DisconnectAndResetGame();
+            return;
+        }
+        
+        // If no NetworkLobbyManager is found, fall back to basic state reset
+        Debug.LogWarning("[GameManager] NetworkLobbyManager not found, using fallback method");
+        
+        // Reset game variables
+        currentWave.Value = 0;
+        gameTime.Value = 0;
+        isGameActive.Value = false;
+        isVictory.Value = false;
+        
+        // Reset tower if it exists
+        if (mainTower != null)
+        {
+            mainTower.Reset();
+        }
+        
+        // Change to lobby state
+        if (stateManager != null)
+        {
+            stateManager.ChangeState(GameStateType.Lobby);
+        }
+        
+        // Re-enable controls
+        EnablePlayerControlsClientRpc();
+    }
+        
+        [ServerRpc(RequireOwnership = false)]
+        public void RequestReturnToLobbyServerRpc(ServerRpcParams serverRpcParams = default)
+        {
+            Debug.Log("[GameManager] Client requested return to lobby");
+            ReturnToLobby();
+        }
+        
         public void EndGame(bool victory)
         {
             if (!IsServer) return;
@@ -302,10 +409,48 @@ namespace Core.GameManagement
             isGameActive.Value = false;
             isVictory.Value = victory;
             
-            // Change to game over state
+            // Notify all clients about the game over to disable controls
+            NotifyGameOverClientRpc(victory);
+            
+            // Get a reference to the state manager
+            if (stateManager == null)
+            {
+                stateManager = GameServices.Get<GameStateManager>();
+            }
+            
             if (stateManager != null)
             {
+                Debug.Log($"[GameManager] Forcing state change to GameOver. Current state: {stateManager.CurrentStateType}");
+                
+                // Stop any coroutines that might interfere with state change
+                StopAllCoroutines();
+                
+                // Force state change to GameOver
                 stateManager.ChangeState(GameStateType.GameOver);
+                
+                // Double-check that the state changed successfully
+                StartCoroutine(CheckStateChangeSuccess(GameStateType.GameOver));
+            }
+            else
+            {
+                Debug.LogError("[GameManager] Could not find GameStateManager to change state!");
+            }
+        }
+        
+        private IEnumerator CheckStateChangeSuccess(GameStateType expectedState)
+        {
+            yield return null; // Wait a frame for state to update
+            
+            if (stateManager != null && stateManager.CurrentStateType == expectedState)
+            {
+                Debug.Log($"[GameManager] Successfully changed to {expectedState} state");
+            }
+            else if (stateManager != null)
+            {
+                Debug.LogError($"[GameManager] Failed to change to {expectedState} state! Current state is still {stateManager.CurrentStateType}");
+                
+                // Try one more time
+                stateManager.ChangeState(expectedState);
             }
         }
         
@@ -352,10 +497,52 @@ namespace Core.GameManagement
         {
             if (!IsServer) return;
             
-            Debug.Log("[GameManager] Main tower destroyed - Defeat!");
+            Debug.Log("[GameManager] Main tower destroyed - Defeat! Event handler called.");
             
             // End game with defeat
             EndGame(false);
+        }
+        
+        #endregion
+        
+        #region Player Controls
+        
+        private void DisablePlayerControls()
+        {
+            // Find and disable all player movement scripts
+            PlayerMovement[] playerMovements = FindObjectsOfType<PlayerMovement>();
+            foreach (var movement in playerMovements)
+            {
+                movement.enabled = false;
+            }
+            
+            // Also disable player damage scripts
+            PlayerDamage[] playerDamages = FindObjectsOfType<PlayerDamage>();
+            foreach (var damage in playerDamages)
+            {
+                damage.enabled = false;
+            }
+            
+            Debug.Log("[GameManager] Player controls disabled for Game Over state");
+        }
+        
+        private void EnablePlayerControls()
+        {
+            // Find and enable all player movement scripts
+            PlayerMovement[] playerMovements = FindObjectsOfType<PlayerMovement>();
+            foreach (var movement in playerMovements)
+            {
+                movement.enabled = true;
+            }
+            
+            // Also enable player damage scripts
+            PlayerDamage[] playerDamages = FindObjectsOfType<PlayerDamage>();
+            foreach (var damage in playerDamages)
+            {
+                damage.enabled = true;
+            }
+            
+            Debug.Log("[GameManager] Player controls enabled");
         }
         
         #endregion
@@ -402,6 +589,70 @@ namespace Core.GameManagement
             
             // Local event for UI to subscribe to
             OnBuildingTimeUpdated?.Invoke(seconds);
+        }
+        
+        [ClientRpc]
+        private void NotifyGameOverClientRpc(bool victory)
+        {
+            Debug.Log($"[GameManager] Game Over notification received by client. Victory: {victory}");
+            
+            // Disable player movement and controls
+            DisablePlayerControls();
+        }
+        
+        [ClientRpc]
+        private void EnablePlayerControlsClientRpc()
+        {
+            Debug.Log($"[GameManager] Re-enabling player controls on client");
+            
+            // Enable player movement and controls
+            EnablePlayerControls();
+        }
+        
+        [ClientRpc]
+        private void ShowGameOverUIClientRpc(bool victory)
+        {
+            Debug.Log($"[GameManager] ShowGameOverUIClientRpc called with victory={victory}");
+            
+            // Find all GameOverCanvas objects in the scene
+            Canvas[] allCanvases = FindObjectsOfType<Canvas>(true); // Include inactive objects
+            bool foundCanvas = false;
+            
+            foreach (var canvas in allCanvases)
+            {
+                if (canvas.name.Contains("GameOver"))
+                {
+                    // Activate the canvas
+                    canvas.gameObject.SetActive(true);
+                    
+                    // Try to set the victory status
+                    GameOverUI gameOverUI = canvas.GetComponent<GameOverUI>();
+                    if (gameOverUI != null)
+                    {
+                        gameOverUI.SetResult(victory);
+                        Debug.Log($"[GameManager] Set GameOverUI result: {(victory ? "Victory!" : "Defeat!")}");
+                    }
+                    
+                    foundCanvas = true;
+                    break;
+                }
+            }
+            
+            if (!foundCanvas)
+            {
+                Debug.LogError("[GameManager] Could not find any GameOverCanvas in the scene!");
+                
+                // Try to find any PlayerClientHandler to show UI
+                PlayerClientHandler[] handlers = FindObjectsOfType<PlayerClientHandler>();
+                foreach (var handler in handlers)
+                {
+                    if (handler.IsOwner) // Only the local player's handler
+                    {
+                        Debug.Log("[GameManager] Trying to show GameOverUI via PlayerClientHandler");
+                        handler.SendMessage("ShowGameOverUIDirectly", victory, SendMessageOptions.DontRequireReceiver);
+                    }
+                }
+            }
         }
         
         #endregion
@@ -459,6 +710,17 @@ namespace Core.GameManagement
             
             // Unregister from service locator
             GameServices.Unregister<GameManager>();
+        }
+        
+        private void OnDestroy()
+        {
+            // Unsubscribe from static events to prevent memory leaks
+            MainTowerHP.OnTowerDestroyed -= HandleMainTowerDestroyed;
+            
+            // We should simply unsubscribe without checking, as we don't have access
+            // to check if the event has subscribers outside the declaring class
+            WaveManager.OnWaveCompleted -= HandleWaveCompleted;
+            WaveManager.OnAllWavesCompleted -= HandleAllWavesCompleted;
         }
     }
 }

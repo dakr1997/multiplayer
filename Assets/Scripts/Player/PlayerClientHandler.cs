@@ -6,13 +6,18 @@ using Core.Towers.MainTower;
 using Player.Base;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using Core.GameState;
+using Core.GameManagement;
 
 public class PlayerClientHandler : NetworkBehaviour
 {
     private GameObject hudInstance;
     private PlayerHUDController hudController;
+    private GameObject gameOverUIInstance;
+    private GameOverUI gameOverUIController;
 
     public GameObject HUDCanvasPrefab; // Assign this in the inspector
+    public GameObject GameOverCanvasPrefab; // Assign this in the inspector
     private PlayerEntity player;
     
     // Add delay configuration
@@ -21,6 +26,10 @@ public class PlayerClientHandler : NetworkBehaviour
     [SerializeField] private int maxRetries = 50;
     
     private bool hasInitialized = false;
+    private Canvas hudCanvas;
+    
+    // Add this field to track if we've already subscribed to events
+    private bool subscribedToStateEvents = false;
 
     public void Initialize(PlayerEntity entity)
     {
@@ -67,8 +76,113 @@ public class PlayerClientHandler : NetworkBehaviour
         // Setup camera and HUD only in game scene
         SetupCamera();
         SetupHUD();
+        SetupGameOverUI();
         
         Debug.Log($"Player {OwnerClientId} initialization complete in scene: {currentScene.name}");
+    }
+    
+    // Separate method for subscribing to events
+    private void SubscribeToGameStateEvents()
+    {
+        if (subscribedToStateEvents)
+        {
+            return; // Already subscribed
+        }
+        
+        // Subscribe to GameStateManager changes
+        GameStateManager stateManager = GameServices.Get<GameStateManager>();
+        if (stateManager != null)
+        {
+            stateManager.OnGameStateChanged += OnGameStateChanged;
+            Debug.Log("[PlayerClientHandler] Subscribed to GameStateManager events");
+            subscribedToStateEvents = true;
+            
+            // Check current state immediately
+            GameStateType currentState = stateManager.CurrentStateType;
+            Debug.Log($"[PlayerClientHandler] Current game state is: {currentState}");
+            
+            // If we're already in GameOver state, show UI right away
+            if (currentState == GameStateType.GameOver)
+            {
+                Debug.Log("[PlayerClientHandler] Already in GameOver state, showing UI immediately");
+                GameManager gameManager = GameServices.Get<GameManager>();
+                bool isVictory = gameManager != null ? gameManager.IsVictory() : false;
+                ShowGameOverUIDirectly(isVictory);
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerClientHandler] Could not find GameStateManager to subscribe to events");
+        }
+    }
+
+    private void OnGameStateChanged(GameStateType newState)
+    {
+        Debug.Log($"[PlayerClientHandler] Game state changed to: {newState}");
+        
+        if (newState == GameStateType.GameOver)
+        {
+            Debug.Log("[PlayerClientHandler] GameOver state detected, showing UI");
+            
+            // Get victory state from GameManager
+            GameManager gameManager = GameServices.Get<GameManager>();
+            bool isVictory = gameManager != null ? gameManager.IsVictory() : false;
+            
+            // Try to show the UI
+            ShowGameOverUIDirectly(isVictory);
+        }
+        else if (newState == GameStateType.Lobby)
+        {
+            Debug.Log("[PlayerClientHandler] Lobby state detected, hiding GameOverUI");
+            HideGameOverUI();
+        }
+    }
+    
+    // Add this method to directly show the GameOver UI 
+    public void ShowGameOverUIDirectly(bool victory)
+    {
+        Debug.Log($"[PlayerClientHandler] Directly showing GameOverUI (Victory: {victory})");
+        
+        if (gameOverUIController != null && gameOverUIInstance != null)
+        {
+            gameOverUIInstance.SetActive(true);
+            gameOverUIController.SetResult(victory);
+            Debug.Log("[PlayerClientHandler] Successfully activated GameOverUI");
+        }
+        else
+        {
+            Debug.LogError("[PlayerClientHandler] GameOverUI controller or instance is null!");
+            
+            // Try to find GameOverCanvas in the scene as a fallback
+            Canvas[] allCanvases = FindObjectsOfType<Canvas>();
+            foreach (var canvas in allCanvases)
+            {
+                if (canvas.name.Contains("GameOver"))
+                {
+                    canvas.gameObject.SetActive(true);
+                    Debug.Log($"[PlayerClientHandler] Found and activated {canvas.name}");
+                    
+                    // Try to set the result if it has a GameOverUI component
+                    GameOverUI ui = canvas.GetComponent<GameOverUI>();
+                    if (ui != null)
+                    {
+                        ui.SetResult(victory);
+                    }
+                    
+                    break;
+                }
+            }
+        }
+    }
+    
+    private void HideGameOverUI()
+    {
+        Debug.Log("[PlayerClientHandler] Hiding GameOverUI");
+        
+        if (gameOverUIController != null && gameOverUIInstance != null)
+        {
+            gameOverUIInstance.SetActive(false);
+        }
     }
 
     private void Update()
@@ -103,12 +217,29 @@ public class PlayerClientHandler : NetworkBehaviour
                 Debug.LogError("[HP TEST] Main tower not found!");
             }
         }
+        
+        // For testing GameOver UI
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            Debug.Log("[UI TEST] Toggling GameOver UI");
+            if (gameOverUIController != null && gameOverUIInstance != null)
+            {
+                if (gameOverUIInstance.activeSelf)
+                    gameOverUIInstance.SetActive(false);
+                else
+                    ShowGameOverUIDirectly(true);
+            }
+            else
+            {
+                Debug.LogError("[UI TEST] GameOverUI not initialized yet!");
+            }
+        }
     }
 
     private void SetupHUD()
     {
         // First check if we can find a dedicated HUD canvas
-        Canvas hudCanvas = null;
+        hudCanvas = null;
         
         // Look for existing HUD_Canvas
         GameObject hudCanvasObj = GameObject.Find("HUD_Canvas");
@@ -156,6 +287,60 @@ public class PlayerClientHandler : NetworkBehaviour
         
         // Wait for MainTower to be available
         StartCoroutine(WaitForMainTower());
+    }
+    
+    private void SetupGameOverUI()
+    {
+        Debug.Log("[PlayerClientHandler] Setting up GameOverUI");
+        
+        // Check if we already have a GameOverCanvas in the scene
+        GameObject existingCanvas = GameObject.Find("GameOverCanvas(Clone)");
+        if (existingCanvas != null)
+        {
+            Debug.Log("[PlayerClientHandler] Found existing GameOverCanvas");
+            gameOverUIInstance = existingCanvas;
+            gameOverUIController = existingCanvas.GetComponent<GameOverUI>();
+            
+            // Make sure it's initially hidden
+            if (gameOverUIInstance != null)
+            {
+                gameOverUIInstance.SetActive(false);
+            }
+            
+            // Try to subscribe to state events if we haven't already
+            if (!subscribedToStateEvents)
+            {
+                SubscribeToGameStateEvents();
+            }
+            
+            return;
+        }
+        
+        // Check if GameOverCanvasPrefab is assigned
+        if (GameOverCanvasPrefab == null)
+        {
+            Debug.LogError("[PlayerClientHandler] GameOverCanvasPrefab is not assigned in the Inspector!");
+            return;
+        }
+        
+        // Instantiate GameOver UI at the root level, not as a child of HUD_Canvas
+        gameOverUIInstance = Instantiate(GameOverCanvasPrefab);
+        gameOverUIInstance.name = "GameOverCanvas(Clone)";
+        gameOverUIController = gameOverUIInstance.GetComponent<GameOverUI>();
+        
+        if (gameOverUIController == null)
+        {
+            Debug.LogError("[PlayerClientHandler] GameOverUI component not found on the prefab!");
+        }
+        else
+        {
+            // Make sure it starts hidden
+            gameOverUIInstance.SetActive(false);
+            Debug.Log("[PlayerClientHandler] GameOverUI setup completed successfully");
+            
+            // Subscribe to state events
+            SubscribeToGameStateEvents();
+        }
     }
     
     private IEnumerator WaitForMainTower()
@@ -232,6 +417,17 @@ public class PlayerClientHandler : NetworkBehaviour
 
     private void OnDestroy()
     {
+        // Unsubscribe from GameStateManager
+        if (subscribedToStateEvents)
+        {
+            GameStateManager stateManager = GameServices.Get<GameStateManager>();
+            if (stateManager != null)
+            {
+                stateManager.OnGameStateChanged -= OnGameStateChanged;
+            }
+            subscribedToStateEvents = false;
+        }
+        
         if (hudController != null && player != null)
         {
             // Unsubscribe from events

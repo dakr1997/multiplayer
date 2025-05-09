@@ -31,7 +31,6 @@ namespace Core.GameManagement
         [SerializeField] private GameObject waveManagerPrefab;
         [SerializeField] private GameObject objectPoolPrefab;
         [SerializeField] private GameObject playerPrefab;
-        [SerializeField] private GameObject playerHUDPrefab; // Add reference to HUD prefab
         
         [Header("Spawn Settings")]
         [SerializeField] private Transform[] playerSpawnPoints;

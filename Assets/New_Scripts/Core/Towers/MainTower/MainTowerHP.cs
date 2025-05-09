@@ -63,6 +63,18 @@ namespace Core.Towers.MainTower
             {
                 // Initialize network variable
                 networkHealth.Value = maxHealth;
+                
+                // Connect to GameManager
+                GameManager gameManager = GameServices.Get<GameManager>();
+                if (gameManager != null)
+                {
+                    gameManager.ConnectMainTower(this);
+                    Debug.Log("[MainTowerHP] Connected to GameManager");
+                }
+                else
+                {
+                    Debug.LogWarning("[MainTowerHP] GameManager not found during spawn!");
+                }
             }
             
             // Subscribe to health changes
@@ -153,7 +165,7 @@ namespace Core.Towers.MainTower
         {
             if (!IsServer) return;
             
-            Debug.Log("[MainTowerHP] Tower destroyed!");
+            Debug.Log("[MainTowerHP] Tower destroyed! Health = " + networkHealth.Value);
             
             // Spawn destruction effect
             if (destroyedEffectPrefab != null)
@@ -172,8 +184,37 @@ namespace Core.Towers.MainTower
                 towerModel.SetActive(false);
             }
             
+            // Log before invoking event
+            Debug.Log($"[MainTowerHP] About to invoke OnTowerDestroyed event. Has listeners: {OnTowerDestroyed != null}");
+            
             // Trigger events
             OnTowerDestroyed?.Invoke();
+            
+            Debug.Log("[MainTowerHP] OnTowerDestroyed event invoked");
+            
+            // Also directly notify GameManager to ensure it gets the message
+            GameManager gameManager = GameServices.Get<GameManager>();
+            if (gameManager != null)
+            {
+                Debug.Log("[MainTowerHP] Directly calling GameManager.OnMainTowerDestroyed()");
+                gameManager.OnMainTowerDestroyed();
+            }
+            else
+            {
+                Debug.LogError("[MainTowerHP] GameManager not found when tower was destroyed!");
+                
+                // Try to find GameStateManager directly as a fallback
+                GameState.GameStateManager stateManager = GameServices.Get<GameState.GameStateManager>();
+                if (stateManager != null)
+                {
+                    Debug.Log("[MainTowerHP] Directly changing state to GameOver via GameStateManager");
+                    stateManager.ChangeState(GameState.GameStateType.GameOver);
+                }
+                else
+                {
+                    Debug.LogError("[MainTowerHP] GameStateManager not found either! Cannot transition to GameOver state!");
+                }
+            }
             
             // We don't actually destroy the network object, just disable it visually
             // This allows us to reset the tower later if needed
