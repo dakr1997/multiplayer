@@ -200,7 +200,7 @@ MonoBehaviour:
   spawnInterval: 2
   initialDelay: 1
   useRandomPositionInArea: 0
-  spawnAreaSize: {x: 5, y: 0, z: 5}
+  spawnAreaSize: {x: 5, y: 5, z: 0}
 --- !u!1 &171197987
 GameObject:
   m_ObjectHideFlags: 0
@@ -725,6 +725,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c15f033731c6fc449dfca568ad3a154, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   towerPrefab: {fileID: 7043881295015415257, guid: d0d2f98a080ef65408415508977474cd, type: 3}
   spawnPoint: {fileID: 648392802}
 --- !u!1 &1021931052

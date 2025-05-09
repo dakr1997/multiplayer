@@ -211,18 +211,29 @@ namespace Core.Enemies.Base
                 spawnPosition = spawnPoint.position;
             }
             
+            // Debug log for spawn position
+            Debug.Log($"[EnemySpawner] Attempting to spawn enemy at position: {spawnPosition}");
+            
             // Get enemy from pool
             NetworkObject enemyObj = objectPool.Get(enemyPrefab);
             if (enemyObj != null)
             {
                 // Position the enemy
                 enemyObj.transform.position = spawnPosition;
-                enemyObj.transform.rotation = spawnPoint.rotation;
+                
+                // Debug enemy position before spawning
+                Debug.Log($"[EnemySpawner] Enemy position before spawn: {enemyObj.transform.position}");
                 
                 // Spawn on the network
                 if (!enemyObj.IsSpawned)
                 {
                     enemyObj.Spawn();
+                    
+                    // IMPORTANT: Position might be reset during spawn, so set position AGAIN after spawning
+                    enemyObj.transform.position = spawnPosition;
+                    
+                    // Debug enemy position after spawning
+                    Debug.Log($"[EnemySpawner] Enemy position after spawn: {enemyObj.transform.position}");
                 }
                 
                 // Set up enemy attributes
