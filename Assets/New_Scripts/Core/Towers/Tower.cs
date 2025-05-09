@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using Core.Towers.MainTower;
 using Core.Towers.Projectiles;
 using Core.Towers.Utilities;
+
 public class Tower : NetworkBehaviour
 {
     [SerializeField] private TowerData towerData;
@@ -26,7 +27,7 @@ public class Tower : NetworkBehaviour
     
     // NEW: Target acquisition timing
     private float targetUpdateCooldown = 0f;
-    private float targetUpdateInterval = 0.5f; // Update targets twice per second instead of every frame
+    private float targetUpdateInterval = 0.2f; // Update targets 5 times per second to be more responsive
     
     private void Awake()
     {
@@ -99,7 +100,7 @@ public class Tower : NetworkBehaviour
         fireCooldown += Time.deltaTime;
         targetUpdateCooldown += Time.deltaTime;
         
-        // Only update targets periodically rather than every frame
+        // Update targets more frequently to quickly respond to dead enemies
         if (targetUpdateCooldown >= targetUpdateInterval)
         {
             UpdateTargets();
@@ -122,11 +123,31 @@ public class Tower : NetworkBehaviour
     
     private void UpdateTargets()
     {
-        if (currentTarget == null || 
-            !currentTarget.activeInHierarchy || 
-            Vector3.Distance(transform.position, currentTarget.transform.position) > towerData.attackRange)
+        // Always check if current target is still valid
+        bool needNewTarget = true;
+        
+        if (currentTarget != null)
         {
-            // Lost current target or out of range, find a new one
+            // Check if target is still alive
+            HealthComponent targetHealth = currentTarget.GetComponent<HealthComponent>();
+            if (targetHealth != null && targetHealth.IsAlive && 
+                currentTarget.activeInHierarchy &&
+                Vector3.Distance(transform.position, currentTarget.transform.position) <= towerData.attackRange)
+            {
+                // Current target is still alive and in range
+                needNewTarget = false;
+            }
+            else
+            {
+                // Current target is dead or out of range
+                currentTarget = null;
+                aimSystem = new Aim(); // Reset aim system
+            }
+        }
+        
+        // Find a new target if needed
+        if (needNewTarget)
+        {
             GameObject previousTarget = currentTarget;
             currentTarget = FindClosestEnemy();
             
@@ -161,7 +182,27 @@ public class Tower : NetworkBehaviour
             // If we have any enemies, return the first one (closest one due to sorting)
             if (enemiesInRange.Count > 0 && enemiesInRange[0] != null)
             {
-                return enemiesInRange[0].gameObject;
+                // Double-check that this enemy is still alive
+                HealthComponent health = enemiesInRange[0].GetComponent<HealthComponent>();
+                if (health != null && health.IsAlive)
+                {
+                    return enemiesInRange[0].gameObject;
+                }
+                else
+                {
+                    // If the closest enemy is dead, try the next ones
+                    for (int i = 1; i < enemiesInRange.Count; i++)
+                    {
+                        if (enemiesInRange[i] != null)
+                        {
+                            health = enemiesInRange[i].GetComponent<HealthComponent>();
+                            if (health != null && health.IsAlive)
+                            {
+                                return enemiesInRange[i].gameObject;
+                            }
+                        }
+                    }
+                }
             }
         }
         
@@ -187,6 +228,13 @@ public class Tower : NetworkBehaviour
         {
             if (enemy == null) continue;
             
+            // Make sure enemy is alive
+            HealthComponent health = enemy.GetComponent<HealthComponent>();
+            if (health == null || !health.IsAlive)
+            {
+                continue; // Skip dead enemies
+            }
+            
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
             if (dist < towerData.attackRange && dist < closestDist)
             {
@@ -201,6 +249,15 @@ public class Tower : NetworkBehaviour
     private void Fire()
     {
         if (projectileSpawner == null || currentTarget == null) return;
+        
+        // Double-check target is still alive before firing
+        HealthComponent targetHealth = currentTarget.GetComponent<HealthComponent>();
+        if (targetHealth == null || !targetHealth.IsAlive)
+        {
+            // Target died since we last checked, don't waste a shot
+            currentTarget = null;
+            return;
+        }
         
         Vector3? predictedPos = aimSystem.PredictTargetPosition(currentTarget.transform, 1f);
         

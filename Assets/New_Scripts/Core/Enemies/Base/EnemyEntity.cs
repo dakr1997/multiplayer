@@ -26,6 +26,9 @@ namespace Core.Enemies.Base
         public static event Action<EnemyEntity> OnEnemySpawned;
         public static event Action<EnemyEntity> OnEnemyDespawned;
         
+        // Tracking variables
+        private bool deathProcessed = false;
+        
         protected override void Awake()
         {
             base.Awake();
@@ -38,6 +41,23 @@ namespace Core.Enemies.Base
             if (enemyData == null)
             {
                 Debug.LogError($"[EnemyEntity] {gameObject.name} is missing EnemyData!");
+            }
+        }
+        
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+            
+            // Reset state
+            deathProcessed = false;
+            
+            if (IsServer)
+            {
+                // Initialize components 
+                InitializeComponents();
+                
+                // Trigger spawn event
+                OnEnemySpawned?.Invoke(this);
             }
         }
         
@@ -68,9 +88,6 @@ namespace Core.Enemies.Base
                 {
                     Health.OnDied += HandleDeath;
                 }
-                
-                // Trigger spawn event
-                OnEnemySpawned?.Invoke(this);
             }
         }
         
@@ -105,46 +122,44 @@ namespace Core.Enemies.Base
         /// </summary>
         private void HandleDeath()
         {
-            if (!IsServer) return;
+            if (!IsServer || deathProcessed) return;
             
             Debug.Log($"[EnemyEntity] {gameObject.name} died");
             
-            // Get the poolable component FIRST before potentially despawning
-            var poolable = GetComponent<PoolableNetworkObject>();
+            // Mark death as processed to prevent multiple calls
+            deathProcessed = true;
             
-            // Now handle pooling with a delay
-            if (poolable != null)
+            // Make sure AI stops immediately
+            if (aiComponent != null)
             {
-                Debug.Log($"[EnemyEntity] Found poolable component, returning {gameObject.name} to pool after delay");
-                poolable.ReturnToPool(2.0f);
+                aiComponent.enabled = false;
             }
-            else
+            
+            // Make sure damage stops immediately
+            if (damageComponent != null)
             {
-                Debug.LogWarning($"[EnemyEntity] No PoolableNetworkObject found on {gameObject.name}! Not using pool.");
-                
-                // Destroy normally if no pooling
-                if (NetworkObject != null && NetworkObject.IsSpawned)
-                {
-                    StartCoroutine(DestroyAfterDelay(2.0f));
-                }
+                damageComponent.enabled = false;
             }
+            
+            // The HealthComponent handles actual despawning/pooling logic
         }
-
-
-        private System.Collections.IEnumerator DestroyAfterDelay(float delay)
+        
+        private void OnDisable()
         {
-            yield return new WaitForSeconds(delay);
-            
-            if (NetworkObject != null && NetworkObject.IsSpawned)
+            // Make sure components are disabled when this entity is disabled
+            if (aiComponent != null)
             {
-                NetworkObject.Despawn();
+                aiComponent.enabled = false;
+            }
+            
+            if (damageComponent != null)
+            {
+                damageComponent.enabled = false;
             }
         }
         
         public override void OnNetworkDespawn()
         {
-            base.OnNetworkDespawn();
-            
             // Unsubscribe from events
             if (Health != null)
             {
@@ -153,6 +168,8 @@ namespace Core.Enemies.Base
             
             // Trigger despawn event
             OnEnemyDespawned?.Invoke(this);
+            
+            base.OnNetworkDespawn();
         }
     }
 }

@@ -32,6 +32,9 @@ namespace Core.Components
         // Wave multipliers
         private float healthMultiplier = 1f;
         private bool hasAppliedMultiplier = false;
+        
+        // Death drop tracking
+        private bool hasDroppedLoot = false;
 
         // Events
         public event Action<float, float> OnHealthChanged;
@@ -89,6 +92,7 @@ namespace Core.Components
                 
                 // Ensure alive state is true
                 isAliveState.Value = true;
+                hasDroppedLoot = false;
             }
 
             currentHealth.OnValueChanged += HandleHealthChanged;
@@ -131,6 +135,42 @@ namespace Core.Components
             {
                 // The entity just died, disable all important components
                 DisableComponentsLocally();
+                
+                // Play death effects if we're a client
+                if (IsClient && !IsServer)
+                {
+                    PlayDeathEffectsLocally();
+                }
+            }
+        }
+        
+        private void PlayDeathEffectsLocally()
+        {
+            // Spawn death effect if specified
+            if (deathEffectPrefab != null)
+            {
+                Instantiate(deathEffectPrefab, transform.position, transform.rotation);
+            }
+
+            // Disable all renderers (visual only)
+            foreach (var renderer in GetComponentsInChildren<Renderer>())
+            {
+                renderer.enabled = false;
+            }
+            
+            // Disable colliders
+            foreach (var collider in GetComponentsInChildren<Collider2D>())
+            {
+                collider.enabled = false;
+            }
+            
+            // Disable Rigidbody2D forces but keep it active
+            Rigidbody2D rb = GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+                rb.simulated = false;
             }
         }
         
@@ -164,28 +204,46 @@ namespace Core.Components
             {
                 collider.enabled = false;
             }
+            
+            // Disable renderers if we're the server
+            if (IsServer)
+            {
+                foreach (var renderer in GetComponentsInChildren<Renderer>())
+                {
+                    renderer.enabled = false;
+                }
+            }
         }
 
         private void Die()
         {
+            // Only run this once
+            if (!isAliveState.Value) return;
+            
             Debug.Log($"{gameObject.name} died.");
             
-            // Set alive state to false - this will be synchronized to all clients
+            // First immediately set alive state to false on the server
+            // This triggers HandleAliveStateChanged on the server immediately
             isAliveState.Value = false;
-
-            // Play death effects and disable visual components on clients
-            DisableGameObjectClientRpc();
-
+            
             // Disable components locally on the server
             DisableComponentsLocally();
-
-            // Notify listeners
-            OnDied?.Invoke();
             
-            // Get the poolable component FIRST before potentially despawning
-            var poolable = GetComponent<PoolableNetworkObject>();
+            // IMPORTANT: Immediately trigger OnDied event so that EnemyManager and other
+            // systems (like XP manager) are notified right away
+            if (!hasDroppedLoot)
+            {
+                hasDroppedLoot = true;
+                OnDied?.Invoke();
+            }
+            
+            // Tell all clients about the death and to disable visuals
+            // This ensures clients who don't track isAliveState directly
+            // will still see the enemy die
+            DisableGameObjectClientRpc();
             
             // Now handle pooling with a delay
+            var poolable = GetComponent<PoolableNetworkObject>();
             if (poolable != null)
             {
                 Debug.Log($"[HealthComponent] Found poolable component, returning {gameObject.name} to pool after delay");
@@ -210,35 +268,8 @@ namespace Core.Components
         [ClientRpc]
         private void DisableGameObjectClientRpc()
         {
-            // Spawn death effect if specified
-            if (deathEffectPrefab != null)
-            {
-                Instantiate(deathEffectPrefab, transform.position, transform.rotation);
-            }
-
-            // Disable all renderers (visual only)
-            foreach (var renderer in GetComponentsInChildren<Renderer>())
-            {
-                renderer.enabled = false;
-            }
-            
-            // Disable colliders
-            foreach (var collider in GetComponentsInChildren<Collider2D>())
-            {
-                collider.enabled = false;
-            }
-            
-            // Disable Rigidbody2D forces but keep it active
-            Rigidbody2D rb = GetComponent<Rigidbody2D>();
-            if (rb != null)
-            {
-                rb.linearVelocity = Vector2.zero;
-                rb.angularVelocity = 0f;
-                rb.simulated = false;
-            }
-            
-            // We no longer need to disable MonoBehaviours here since we're using
-            // the NetworkVariable isAliveState to control behavior at the source
+            // IMMEDIATELY play death effects on all clients
+            PlayDeathEffectsLocally();
         }
 
         public override void OnNetworkDespawn()

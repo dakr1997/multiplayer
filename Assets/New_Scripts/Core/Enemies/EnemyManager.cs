@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Core.Enemies.Base;
+using Core.Components;
 
 namespace Core.Enemies
 {
@@ -70,8 +71,31 @@ namespace Core.Enemies
         public List<EnemyAI> GetAllActiveEnemies()
         {
             // Clean up any null references that might have occurred
-            activeEnemies.RemoveAll(e => e == null);
+            CleanupInactiveEnemies();
             return new List<EnemyAI>(activeEnemies);
+        }
+        
+        /// <summary>
+        /// Clean up any inactive or dead enemies from the tracking list
+        /// </summary>
+        private void CleanupInactiveEnemies()
+        {
+            for (int i = activeEnemies.Count - 1; i >= 0; i--)
+            {
+                // Remove if null, not active, or dead
+                if (activeEnemies[i] == null || !activeEnemies[i].isActiveAndEnabled)
+                {
+                    activeEnemies.RemoveAt(i);
+                    continue;
+                }
+                
+                // Check health component
+                HealthComponent health = activeEnemies[i].GetComponent<HealthComponent>();
+                if (health != null && !health.IsAlive)
+                {
+                    activeEnemies.RemoveAt(i);
+                }
+            }
         }
         
         /// <summary>
@@ -79,12 +103,20 @@ namespace Core.Enemies
         /// </summary>
         public List<EnemyAI> GetActiveEnemiesInRange(Vector3 position, float range)
         {
+            // Clean up dead/inactive enemies first
+            CleanupInactiveEnemies();
+            
+            // Now return only enemies that are in range
             List<EnemyAI> enemiesInRange = new List<EnemyAI>();
             float rangeSqr = range * range; // Square the range to avoid square root calculations
             
             foreach (var enemy in activeEnemies)
             {
                 if (enemy == null || !enemy.isActiveAndEnabled) continue;
+                
+                // Double-check the enemy is still alive
+                HealthComponent health = enemy.GetComponent<HealthComponent>();
+                if (health != null && !health.IsAlive) continue;
                 
                 // Use sqrMagnitude instead of Distance for better performance
                 float distanceSqr = (enemy.transform.position - position).sqrMagnitude;
@@ -118,7 +150,7 @@ namespace Core.Enemies
         public int GetActiveEnemyCount()
         {
             // Clean up any null references first
-            activeEnemies.RemoveAll(e => e == null);
+            CleanupInactiveEnemies();
             return activeEnemies.Count;
         }
     }
