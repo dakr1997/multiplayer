@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using Core.Player.Base;
+using Core.Towers.Projectiles;
 
 namespace Player.Classes.Archer
 {

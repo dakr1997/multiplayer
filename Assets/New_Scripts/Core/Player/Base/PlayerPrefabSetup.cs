@@ -22,7 +22,8 @@ namespace Core.Player.Base
         
         [Header("Network Configuration")]
         [SerializeField] private bool clientAuthoritative = true;
-        
+
+#if UNITY_EDITOR
         private void OnValidate()
         {
             if (autoAddRequiredComponents)
@@ -72,15 +73,11 @@ namespace Core.Player.Base
             if (health == null)
             {
                 health = gameObject.AddComponent<HealthComponent>();
-                // Use SerializeField instead of direct field access
-                // or if SerializeField is not available, check if there's a public setter
-                var serializedObject = new UnityEditor.SerializedObject(health);
-                var maxHealthProperty = serializedObject.FindProperty("maxHealth");
-                if (maxHealthProperty != null)
-                {
-                    maxHealthProperty.floatValue = maxHealth;
-                    serializedObject.ApplyModifiedProperties();
-                }
+                // Just set properties directly - no SerializedObject in build
+                var field = health.GetType().GetField("maxHealth", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (field != null)
+                    field.SetValue(health, maxHealth);
+                
                 Debug.Log("Added HealthComponent with max health: " + maxHealth);
             }
             
@@ -96,14 +93,11 @@ namespace Core.Player.Base
             if (movement == null)
             {
                 movement = gameObject.AddComponent<PlayerMovement>();
-                // Use SerializeField instead of direct field access
-                var serializedObject = new UnityEditor.SerializedObject(movement);
-                var moveSpeedProperty = serializedObject.FindProperty("moveSpeed");
-                if (moveSpeedProperty != null)
-                {
-                    moveSpeedProperty.floatValue = moveSpeed;
-                    serializedObject.ApplyModifiedProperties();
-                }
+                // Set property directly - no SerializedObject in build
+                var field = movement.GetType().GetField("moveSpeed", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (field != null)
+                    field.SetValue(movement, moveSpeed);
+                
                 Debug.Log("Added PlayerMovement component with speed: " + moveSpeed);
             }
             
@@ -135,5 +129,6 @@ namespace Core.Player.Base
                 Debug.Log("Added PlayerNetworkAnimator component");
             }
         }
+#endif
     }
 }
