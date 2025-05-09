@@ -118,7 +118,7 @@ namespace Core.WaveSystem
         private void BroadcastWaveSettings(int waveNumber, float healthMultiplier, float damageMultiplier, int enemyCount)
         {
             // Find all spawners
-            EnemySpawner[] spawners = FindObjectsOfType<EnemySpawner>();
+            EnemySpawner[] spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
             
             if (spawners.Length == 0)
             {

@@ -349,7 +349,7 @@ namespace Core.GameManagement
             yield return new WaitForSeconds(0.5f);
             
             GameManager gameManager = GameServices.Get<GameManager>();
-            MainTowerHP mainTower = FindObjectOfType<MainTowerHP>();
+            MainTowerHP mainTower = FindAnyObjectByType<MainTowerHP>();
             
             if (gameManager != null && mainTower != null)
             {
@@ -366,7 +366,7 @@ namespace Core.GameManagement
         
         private IEnumerator SetupPlayerCamera()
         {
-            PlayerCameraFollow_Smooth cameraFollow = FindObjectOfType<PlayerCameraFollow_Smooth>();
+            PlayerCameraFollow_Smooth cameraFollow = FindAnyObjectByType<PlayerCameraFollow_Smooth>();
             if (cameraFollow == null) yield break;
             
             // Wait until local player exists

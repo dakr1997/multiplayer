@@ -84,7 +84,7 @@ namespace Core.GameState
         private void EnableTowerBuilding(bool enabled)
         {
             // Find tower spawner(s)
-            TowerSpawner[] towerSpawners = UnityEngine.Object.FindObjectsOfType<TowerSpawner>();
+            TowerSpawner[] towerSpawners = UnityEngine.Object.FindObjectsByType<TowerSpawner>(FindObjectsSortMode.None);
             
             foreach (var spawner in towerSpawners)
             {
@@ -103,7 +103,7 @@ namespace Core.GameState
         private void DisableEnemies()
         {
             // Find enemy spawners and disable them
-            EnemySpawner[] enemySpawners = UnityEngine.Object.FindObjectsOfType<EnemySpawner>();
+            EnemySpawner[] enemySpawners = UnityEngine.Object.FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
             
             foreach (var spawner in enemySpawners)
             {

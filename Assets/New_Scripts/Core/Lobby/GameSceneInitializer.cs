@@ -58,7 +58,7 @@ namespace Core.Lobby
                 }
                 
                 // Check if HUD already exists
-                if (FindObjectOfType<PlayerHUDController>() == null)
+                if (FindAnyObjectByType<PlayerHUDController>() == null)
                 {
                     Debug.Log("No HUD found, contiuing...");
                 }

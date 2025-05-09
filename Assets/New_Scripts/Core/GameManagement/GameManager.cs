@@ -82,7 +82,7 @@ namespace Core.GameManagement
             // Double-check that we're connected to MainTowerHP
             if (mainTower == null)
             {
-                mainTower = FindObjectOfType<MainTowerHP>();
+                mainTower = FindAnyObjectByType<MainTowerHP>();
                 if (mainTower != null)
                 {
                     ConnectMainTower(mainTower);
@@ -167,7 +167,7 @@ namespace Core.GameManagement
             if (tower == null && mainTower == null)
             {
                 // Try to find it in the scene
-                mainTower = FindObjectOfType<MainTowerHP>();
+                mainTower = FindAnyObjectByType<MainTowerHP>();
                 if (mainTower == null) return;
             }
             else if (tower != null)
@@ -511,14 +511,14 @@ namespace Core.GameManagement
         private void DisablePlayerControls()
         {
             // Find and disable all player movement scripts
-            PlayerMovement[] playerMovements = FindObjectsOfType<PlayerMovement>();
+            PlayerMovement[] playerMovements = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
             foreach (var movement in playerMovements)
             {
                 movement.enabled = false;
             }
             
             // Also disable player damage scripts
-            PlayerDamage[] playerDamages = FindObjectsOfType<PlayerDamage>();
+            PlayerDamage[] playerDamages = FindObjectsByType<PlayerDamage>(FindObjectsSortMode.None);
             foreach (var damage in playerDamages)
             {
                 damage.enabled = false;
@@ -530,14 +530,14 @@ namespace Core.GameManagement
         private void EnablePlayerControls()
         {
             // Find and enable all player movement scripts
-            PlayerMovement[] playerMovements = FindObjectsOfType<PlayerMovement>();
+            PlayerMovement[] playerMovements = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
             foreach (var movement in playerMovements)
             {
                 movement.enabled = true;
             }
             
             // Also enable player damage scripts
-            PlayerDamage[] playerDamages = FindObjectsOfType<PlayerDamage>();
+            PlayerDamage[] playerDamages = FindObjectsByType<PlayerDamage>(FindObjectsSortMode.None);
             foreach (var damage in playerDamages)
             {
                 damage.enabled = true;
@@ -616,7 +616,7 @@ namespace Core.GameManagement
             Debug.Log($"[GameManager] ShowGameOverUIClientRpc called with victory={victory}");
             
             // Find all GameOverCanvas objects in the scene
-            Canvas[] allCanvases = FindObjectsOfType<Canvas>(true); // Include inactive objects
+            Canvas[] allCanvases = FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             bool foundCanvas = false;
             
             foreach (var canvas in allCanvases)
@@ -644,7 +644,7 @@ namespace Core.GameManagement
                 Debug.LogError("[GameManager] Could not find any GameOverCanvas in the scene!");
                 
                 // Try to find any PlayerClientHandler to show UI
-                PlayerClientHandler[] handlers = FindObjectsOfType<PlayerClientHandler>();
+                PlayerClientHandler[] handlers = FindObjectsByType<PlayerClientHandler>(FindObjectsSortMode.None);
                 foreach (var handler in handlers)
                 {
                     if (handler.IsOwner) // Only the local player's handler

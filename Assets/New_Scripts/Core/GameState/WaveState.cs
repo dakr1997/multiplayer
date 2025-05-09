@@ -123,7 +123,7 @@ namespace Core.GameState
             enemySpawners.Clear();
             
             // Find all enemy spawners
-            EnemySpawner[] spawners = UnityEngine.Object.FindObjectsOfType<EnemySpawner>();
+            EnemySpawner[] spawners = UnityEngine.Object.FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
             
             if (spawners.Length == 0)
             {
@@ -163,7 +163,7 @@ namespace Core.GameState
             }
             
             // Check if any enemies remain alive
-            int activeEnemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>().Length;
+            int activeEnemies = UnityEngine.Object.FindObjectsByType<EnemyAI>(FindObjectsSortMode.None).Length;
             return activeEnemies == 0;
         }
     }

@@ -75,7 +75,7 @@ public class FindObjectsDeprecationFixer : EditorWindow
             int replacementsInFile = 0;
             
             // Fix single object find
-            // Replace FindObjectOfType<T>() with FindFirstObjectByType<T>() or FindAnyObjectByType<T>()
+            // Replace FindAnyObjectByType<T>() with FindFirstObjectByType<T>() or FindAnyObjectByType<T>()
             content = Regex.Replace(content, @"FindObjectOfType\s*<([^>]+)>\s*\(\s*\)", match => {
                 replacementsInFile++;
                 return $"FindAnyObjectByType<{match.Groups[1].Value}>()";

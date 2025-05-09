@@ -158,7 +158,7 @@ namespace Core.Player.Components
                 Debug.LogError("[PlayerClientHandler] GameOverUI controller or instance is null!");
                 
                 // Try to find GameOverCanvas in the scene as a fallback
-                Canvas[] allCanvases = FindObjectsOfType<Canvas>();
+                Canvas[] allCanvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
                 foreach (var canvas in allCanvases)
                 {
                     if (canvas.name.Contains("GameOver"))
@@ -256,7 +256,7 @@ namespace Core.Player.Components
             // If not found, look for Game-scene canvases
             if (hudCanvas == null)
             {
-                Canvas[] allCanvases = FindObjectsOfType<Canvas>();
+                Canvas[] allCanvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
                 foreach (Canvas canvas in allCanvases)
                 {
                     // Skip lobby-specific canvases

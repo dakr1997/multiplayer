@@ -30,7 +30,7 @@ public class XPManager : NetworkBehaviour
         if (poolManager == null)
         {
             Debug.LogError("NetworkObjectPool not found! Trying to find it in scene...");
-            poolManager = FindObjectOfType<NetworkObjectPool>();
+            poolManager = FindAnyObjectByType<NetworkObjectPool>();
             
             if (poolManager == null)
             {
@@ -211,7 +211,7 @@ public class XPManager : NetworkBehaviour
             
             if (poolManager == null)
             {
-                poolManager = FindObjectOfType<NetworkObjectPool>();
+                poolManager = FindAnyObjectByType<NetworkObjectPool>();
                 if (poolManager == null)
                 {
                     Debug.LogError("Still cannot find NetworkObjectPool! XP bubble cannot spawn.");
