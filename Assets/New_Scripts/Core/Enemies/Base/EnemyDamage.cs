@@ -2,6 +2,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using Core.Towers.MainTower;
+using Core.Components;
 
 namespace Core.Enemies.Base
 {
@@ -15,6 +16,14 @@ namespace Core.Enemies.Base
         
         // Wave-specific multipliers
         private float damageMultiplier = 1f;
+        
+        // Reference to health component
+        private HealthComponent healthComponent;
+        
+        private void Awake()
+        {
+            healthComponent = GetComponent<HealthComponent>();
+        }
         
         /// <summary>
         /// Set enemy data for configuration
@@ -48,7 +57,13 @@ namespace Core.Enemies.Base
 
         private void Update()
         {
-            if (!IsServer || !gameObject.activeInHierarchy) return;
+            // Only process if:
+            // 1. This is the server
+            // 2. This component is enabled (will be disabled on death)
+            // 3. The enemy is alive 
+            if (!IsServer || !enabled || !gameObject.activeInHierarchy || 
+                (healthComponent != null && !healthComponent.IsAlive)) 
+                return;
             
             if (Time.time - lastAttackTime >= enemyData.attackCooldown)
             {

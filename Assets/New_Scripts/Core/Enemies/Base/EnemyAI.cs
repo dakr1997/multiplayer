@@ -94,7 +94,12 @@ namespace Core.Enemies.Base
 
         private void Update()
         {
-            if (!IsServer) return;
+            // Only process if:
+            // 1. This is the server
+            // 2. This component is enabled (will be disabled on death)
+            // 3. The enemy is alive 
+            if (!IsServer || !enabled || (health != null && !health.IsAlive))
+                return;
             
             // Update direction periodically
             if (Time.time - lastDirectionChangeTime > UnityEngine.Random.Range(1f, 3f))
@@ -112,6 +117,16 @@ namespace Core.Enemies.Base
 
         private void MoveEnemy()
         {
+            // Skip movement if enemy is dead or this component is disabled
+            if (!enabled || (health != null && !health.IsAlive))
+            {
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector2.zero;
+                }
+                return;
+            }
+            
             // Get closest target
             Transform closestTarget = GetClosestTarget();
             Vector2 moveDirection;
@@ -193,6 +208,20 @@ namespace Core.Enemies.Base
         private void HandleDeath()
         {
             if (!IsServer) return;
+            
+            // Stop all movement
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+                rb.simulated = false;
+            }
+            
+            // Clear targets
+            potentialTargets.Clear();
+            
+            // Disable this component explicitly
+            enabled = false;
             
             // Trigger death event for external systems like XPManager
             OnEnemyDied?.Invoke(this);
