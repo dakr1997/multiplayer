@@ -48,7 +48,7 @@ namespace Core.Enemies.Base
 
         private void Update()
         {
-            if (!IsServer) return;
+            if (!IsServer || !gameObject.activeInHierarchy) return;
             
             if (Time.time - lastAttackTime >= enemyData.attackCooldown)
             {

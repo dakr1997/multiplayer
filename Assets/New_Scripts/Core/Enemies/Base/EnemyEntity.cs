@@ -109,24 +109,24 @@ namespace Core.Enemies.Base
             
             Debug.Log($"[EnemyEntity] {gameObject.name} died");
             
-            // Disable AI if we have it (prevent movement during death animation)
-            var aiComponent = GetComponent<EnemyAI>();
-            if (aiComponent != null)
-            {
-                aiComponent.enabled = false;
-            }
+            // Get the poolable component FIRST before potentially despawning
+            var poolable = GetComponent<PoolableNetworkObject>();
             
-            // Return to object pool if poolable (with delay to allow death effects)
-            if (TryGetComponent<PoolableEnemy>(out var poolable))
+            // Now handle pooling with a delay
+            if (poolable != null)
             {
-                Debug.Log($"[EnemyEntity] Returning {gameObject.name} to pool after delay");
+                Debug.Log($"[EnemyEntity] Found poolable component, returning {gameObject.name} to pool after delay");
                 poolable.ReturnToPool(2.0f);
             }
-            else if (NetworkObject != null && NetworkObject.IsSpawned)
+            else
             {
-                // Fallback for non-pooled enemies
-                Debug.Log($"[EnemyEntity] No poolable component found, destroying {gameObject.name}");
-                StartCoroutine(DestroyAfterDelay(2.0f));
+                Debug.LogWarning($"[EnemyEntity] No PoolableNetworkObject found on {gameObject.name}! Not using pool.");
+                
+                // Destroy normally if no pooling
+                if (NetworkObject != null && NetworkObject.IsSpawned)
+                {
+                    StartCoroutine(DestroyAfterDelay(2.0f));
+                }
             }
         }
 

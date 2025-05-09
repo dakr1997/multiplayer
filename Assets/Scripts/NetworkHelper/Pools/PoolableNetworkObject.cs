@@ -64,6 +64,7 @@ public abstract class PoolableNetworkObject : NetworkBehaviour, IPoolable
     {
         if (pool != null)
         {
+            Debug.Log($"Returning {gameObject.name} to pool in OnNetworkDespawn");
             pool.Release(prefab, NetworkObject);
         }
         

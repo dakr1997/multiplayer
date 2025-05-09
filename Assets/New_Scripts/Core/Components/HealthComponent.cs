@@ -123,21 +123,9 @@ namespace Core.Components
             // Notify listeners
             OnDied?.Invoke();
 
-            // Handle object destruction
-            if (destroyOnDeath && IsServer)
-            {
-                // Check if we're using pooling
-                if (gameObject.TryGetComponent<PoolableNetworkObject>(out var poolable))
-                {
-                    // Return to pool after delay
-                    poolable.ReturnToPool(destroyDelay);
-                }
-                else if (NetworkObject != null)
-                {
-                    // Standard destruction if not poolable
-                    StartCoroutine(DestroyAfterDelay(destroyDelay));
-                }
-            }
+            // Handle object pooling/destruction in a consistent way
+            // Let listeners (like EnemyEntity) handle the actual pooling/despawning
+            // Don't directly call ReturnToPool here to avoid conflicts
         }
 
         private System.Collections.IEnumerator DestroyAfterDelay(float delay)
