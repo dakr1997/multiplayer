@@ -4,6 +4,8 @@ using Core.GameState;
 using Core.Towers.MainTower;
 using Core.Components;
 using System.Collections;
+using Core.Player.Components;
+using Core.Player.UI;
 
 namespace Core.Lobby
 {

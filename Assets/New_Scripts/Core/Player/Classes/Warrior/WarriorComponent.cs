@@ -1,6 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
-using Player.Base;
+using Core.Player.Base;
 
 namespace Player.Classes.Warrior
 {

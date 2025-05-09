@@ -1,7 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using Core.Enemies.Base;
-
+using Core.Player.Components;
 public class XPManager : NetworkBehaviour
 {
     public static XPManager Instance { get; private set; }

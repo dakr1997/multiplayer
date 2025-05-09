@@ -6,6 +6,7 @@ using Unity.Netcode;
 using Core.GameState;
 using Core.Towers.MainTower; // Add this namespace reference for MainTowerHP
 using Core.WaveSystem; // Reference for WaveManager
+using Core.Player.Components; // Reference for PlayerMovement and PlayerDamage
 
 namespace Core.GameManagement
 {

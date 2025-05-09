@@ -6,7 +6,8 @@ using System.Collections.Generic;
 using Core.GameState;
 using Core.Towers.MainTower;
 using Core.WaveSystem;
-using Player.Base;
+using Core.Player.Base;
+using Core.Player.Components;
 
 namespace Core.GameManagement
 {
