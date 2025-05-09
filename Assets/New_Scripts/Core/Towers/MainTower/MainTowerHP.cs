@@ -246,8 +246,11 @@ namespace Core.Towers.MainTower
             }
         }
         
-        private void OnDestroy()
+        public override void OnDestroy()
         {
+            // Call the base method first
+            base.OnDestroy();
+            
             // Clear instance reference if this is the current instance
             if (_instance == this)
             {

@@ -713,8 +713,11 @@ namespace Core.GameManagement
             GameServices.Unregister<GameManager>();
         }
         
-        private void OnDestroy()
+        public override void OnDestroy()
         {
+            // Call the base method first
+            base.OnDestroy();
+            
             // Unsubscribe from static events to prevent memory leaks
             MainTowerHP.OnTowerDestroyed -= HandleMainTowerDestroyed;
             

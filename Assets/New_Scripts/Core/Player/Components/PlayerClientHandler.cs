@@ -419,8 +419,11 @@ namespace Core.Player.Components
             }
         }
 
-        private void OnDestroy()
+        public override void OnDestroy()
         {
+            // Call the base method first
+            base.OnDestroy();
+            
             // Unsubscribe from GameStateManager
             if (subscribedToStateEvents)
             {
