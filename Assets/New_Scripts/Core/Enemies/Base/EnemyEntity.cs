@@ -105,7 +105,40 @@ namespace Core.Enemies.Base
         /// </summary>
         private void HandleDeath()
         {
+            if (!IsServer) return;
+            
             Debug.Log($"[EnemyEntity] {gameObject.name} died");
+            
+            // Disable AI if we have it (prevent movement during death animation)
+            var aiComponent = GetComponent<EnemyAI>();
+            if (aiComponent != null)
+            {
+                aiComponent.enabled = false;
+            }
+            
+            // Return to object pool if poolable (with delay to allow death effects)
+            if (TryGetComponent<PoolableEnemy>(out var poolable))
+            {
+                Debug.Log($"[EnemyEntity] Returning {gameObject.name} to pool after delay");
+                poolable.ReturnToPool(2.0f);
+            }
+            else if (NetworkObject != null && NetworkObject.IsSpawned)
+            {
+                // Fallback for non-pooled enemies
+                Debug.Log($"[EnemyEntity] No poolable component found, destroying {gameObject.name}");
+                StartCoroutine(DestroyAfterDelay(2.0f));
+            }
+        }
+
+
+        private System.Collections.IEnumerator DestroyAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            
+            if (NetworkObject != null && NetworkObject.IsSpawned)
+            {
+                NetworkObject.Despawn();
+            }
         }
         
         public override void OnNetworkDespawn()

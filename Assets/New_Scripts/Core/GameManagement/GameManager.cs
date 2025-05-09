@@ -19,7 +19,6 @@ namespace Core.GameManagement
         public static GameManager Instance { get; private set; }
         
         [Header("Game Configuration")]
-        [SerializeField] private int minPlayersToStart = 2;
         [SerializeField] private float buildingPhaseDuration = 60f;
         [SerializeField] private int maxWaves = 5;
         
