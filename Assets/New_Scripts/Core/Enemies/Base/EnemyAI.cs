@@ -236,5 +236,26 @@ namespace Core.Enemies.Base
             
             base.OnNetworkDespawn();
         }
+
+        /// <summary>
+        /// Reset AI state when reused from pool
+        /// </summary>
+        public void ResetState()
+        {
+            if (!IsServer) return;
+            
+            // Reset internal state
+            randomDirection = UnityEngine.Random.insideUnitCircle.normalized;
+            lastDirectionChangeTime = Time.time;
+            
+            // Clear target lists
+            potentialTargets.Clear();
+            
+            // Find new targets
+            FindTargets();
+            
+            // Enable this component
+            enabled = true;
+        }
     }
 }

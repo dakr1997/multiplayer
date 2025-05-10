@@ -118,6 +118,61 @@ namespace Core.Enemies.Base
         }
         
         /// <summary>
+        /// Reset the entity to its initial state when pulled from the object pool
+        /// </summary>
+        public void ResetState()
+        {
+            if (!IsServer) return;
+            
+            Debug.Log($"[EnemyEntity] Resetting state for {gameObject.name}");
+            
+            // Reset health component
+            if (Health != null)
+            {
+                Health.ResetState();
+            }
+            
+            // Reset AI component
+            if (aiComponent != null)
+            {
+                aiComponent.enabled = true;
+                
+                // Reset any AI-specific state if needed
+                aiComponent.ResetState();
+            }
+            
+            // Reset damage component
+            if (damageComponent != null)
+            {
+                damageComponent.enabled = true;
+            }
+            
+            // Reset renderers
+            foreach (var renderer in GetComponentsInChildren<Renderer>())
+            {
+                renderer.enabled = true;
+            }
+            
+            // Reset colliders
+            foreach (var collider in GetComponentsInChildren<Collider2D>())
+            {
+                collider.enabled = true;
+            }
+            
+            // Reset physics
+            Rigidbody2D rb = GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.simulated = true;
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+            }
+            
+            // Reset state variables
+            deathProcessed = false;
+        }
+        
+        /// <summary>
         /// Handle death event from HealthComponent
         /// </summary>
         private void HandleDeath()

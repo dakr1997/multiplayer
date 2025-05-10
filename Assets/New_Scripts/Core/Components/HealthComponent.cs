@@ -243,17 +243,29 @@ namespace Core.Components
             DisableGameObjectClientRpc();
             
             // Now handle pooling with a delay
-            var poolable = GetComponent<PoolableNetworkObject>();
+            // CHANGE: Look for IPoolable interface instead of specific implementation
+            var poolable = GetComponent<IPoolable>();
             if (poolable != null)
             {
                 Debug.Log($"[HealthComponent] Found poolable component, returning {gameObject.name} to pool after delay");
                 poolable.ReturnToPool(2.0f);
             }
-            else if (destroyOnDeath)
+            else
             {
-                StartCoroutine(DestroyAfterDelay(destroyDelay));
+                Debug.LogWarning($"[HealthComponent] No poolable component found on {gameObject.name}");
+                if (destroyOnDeath)
+                {
+                    StartCoroutine(DestroyAfterDelay(destroyDelay));
+                }
             }
         }
+
+
+
+
+
+
+
 
         private System.Collections.IEnumerator DestroyAfterDelay(float delay)
         {
@@ -277,6 +289,22 @@ namespace Core.Components
             currentHealth.OnValueChanged -= HandleHealthChanged;
             isAliveState.OnValueChanged -= HandleAliveStateChanged;
             base.OnNetworkDespawn();
+        }
+        
+        /// <summary>
+        /// Reset health state to initial values. Called when an object is reused from a pool.
+        /// </summary>
+        public void ResetState()
+        {
+            if (IsServer)
+            {
+                // Reset health and alive state
+                currentHealth.Value = maxHealth * healthMultiplier;
+                isAliveState.Value = true;
+                hasDroppedLoot = false;
+                
+                Debug.Log($"[HealthComponent] Reset health state for {gameObject.name}");
+            }
         }
     }
 }

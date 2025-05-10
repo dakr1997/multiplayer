@@ -29,32 +29,67 @@ namespace Core.Enemies.Base
         {
             base.OnSpawn();
             
-            // Reset enemy state
-            if (healthComponent != null)
+            Debug.Log($"[PoolableEnemy] OnSpawn called for {gameObject.name}");
+            
+            // Reset enemy state through the entity
+            if (enemyEntity != null && IsServer)
             {
-                // Reset health to max (will be scaled by multiplier during initialization)
-                if (IsServer)
+                enemyEntity.ResetState();
+            }
+            else
+            {
+                // Fallback in case there's no entity component
+                // Reset health component directly
+                if (healthComponent != null && IsServer)
                 {
-                    healthComponent.Heal(healthComponent.MaxHealth);
+                    healthComponent.ResetState();
                 }
-            }
-            
-            // Enable renderers that might have been disabled
-            foreach (var renderer in GetComponentsInChildren<Renderer>())
-            {
-                renderer.enabled = true;
-            }
-            
-            // Reset other components as needed
-            if (aiComponent != null)
-            {
-                // Reset AI state if needed
+                
+                // Reset AI component
+                if (aiComponent != null)
+                {
+                    aiComponent.enabled = true;
+                    // Reset AI state if it has a method for it
+                    if (aiComponent.GetType().GetMethod("ResetState") != null)
+                    {
+                        aiComponent.SendMessage("ResetState", SendMessageOptions.DontRequireReceiver);
+                    }
+                }
+                
+                // Reset damage component
+                if (damageComponent != null)
+                {
+                    damageComponent.enabled = true;
+                }
+                
+                // Reset renderers
+                foreach (var renderer in GetComponentsInChildren<Renderer>())
+                {
+                    renderer.enabled = true;
+                }
+                
+                // Reset colliders
+                foreach (var collider in GetComponentsInChildren<Collider2D>())
+                {
+                    collider.enabled = true;
+                }
+                
+                // Reset rigidbody
+                Rigidbody2D rb = GetComponent<Rigidbody2D>();
+                if (rb != null)
+                {
+                    rb.simulated = true;
+                    rb.linearVelocity = Vector2.zero;
+                    rb.angularVelocity = 0f;
+                }
             }
         }
         
         public override void OnDespawn()
         {
             base.OnDespawn();
+            
+            Debug.Log($"[PoolableEnemy] OnDespawn called for {gameObject.name}");
             
             // Clean up any resources or references
             // For example, clear target lists, stop coroutines, etc.
